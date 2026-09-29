@@ -2,58 +2,34 @@
 
 Local **Movies & TV desktop app** for Windows.
 
-## Desktop app on Windows (do this)
+## Desktop app (simple path)
 
 ### 1) Install Node.js for Windows
-https://nodejs.org → install **LTS** → close all terminals → reopen.
+https://nodejs.org → **LTS** → install → close and reopen terminals.
 
-### 2) Get a clean Windows copy (important)
+### 2) Sync the project (in WSL)
 
-Do **not** copy `node_modules` from WSL. Install fresh on Windows.
-
-Open **Command Prompt** (`cmd`), not PowerShell:
-
-```bat
-cd %USERPROFILE%
-if exist stream-hub rmdir /s /q stream-hub
-mkdir stream-hub
-cd stream-hub
-
-REM Pull source from WSL without node_modules
-wsl -e bash -lc "cd ~/stream-hub && git pull && rsync -a --delete --exclude node_modules --exclude .next --exclude .git ./ /mnt/c/Users/$USER/stream-hub/"
-
-cd %USERPROFILE%\stream-hub
-start-app.bat
+```bash
+cd ~/stream-hub
+git pull
+bash scripts/sync-to-windows.sh
 ```
 
-Or, if Origin CLI / git works on Windows:
+If it asks for a username, use your Windows folder name under `C:\Users\` (yours is likely `davit`):
 
-```bat
-cd %USERPROFILE%
-git clone https://origin.cursor.com/pavle-gagievi/stream-hub.git
-cd stream-hub
-start-app.bat
+```bash
+bash scripts/sync-to-windows.sh davit
 ```
 
-`start-app.bat` will:
-1. write `.env.local` if missing
-2. run `npm install`
-3. build the app
-4. open the Lumina desktop window
+### 3) Start the app (on Windows)
 
-### If PowerShell blocks npm
+Open File Explorer → `C:\Users\davit\stream-hub` → double-click **`start-app.bat`**.
 
-Error: `npm.ps1 cannot be loaded because running scripts is disabled`
+That installs dependencies, builds, and opens the Lumina window.
 
-Fix (run once in PowerShell as your user):
+Do **not** copy `node_modules` from WSL. Do **not** use PowerShell for `npm` (it blocks `npm.ps1`). Use the `.bat` file or Command Prompt with `npm.cmd`.
 
-```powershell
-Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
-```
-
-Or just use **Command Prompt** / double-click `start-app.bat` (recommended).
-
-## Browser mode (already working for you)
+## Browser mode
 
 In WSL:
 
@@ -76,7 +52,5 @@ Open http://127.0.0.1:3847
 
 ### Ads in Firefox
 
-Brave blocks many player ads by default. Firefox does not.
-
-1. Install **[uBlock Origin](https://addons.mozilla.org/firefox/addon/ublock-origin/)** for Firefox.
-2. The desktop app (`start-app.bat`) adds extra network-level ad filtering.
+1. Install **[uBlock Origin](https://addons.mozilla.org/firefox/addon/ublock-origin/)**.
+2. Desktop app (`start-app.bat`) also filters many ad domains.
