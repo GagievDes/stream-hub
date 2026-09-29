@@ -1,4 +1,4 @@
-import type { MediaDetails, MediaItem, MediaType } from "./types";
+import type { MediaDetails, MediaItem, MediaType, TvSeason } from "./types";
 
 /** Curated titles with real TMDB IDs and poster paths for offline/demo mode. */
 const movies: MediaDetails[] = [
@@ -289,4 +289,28 @@ export function mockDetails(
 
 export function isUsingMockData(): boolean {
   return !process.env.TMDB_API_KEY?.trim();
+}
+
+/** Simple episode lists for demo mode when TMDB key is missing. */
+export function mockTvSeasons(id: number): TvSeason[] {
+  const show = tvShows.find((item) => item.id === id);
+  const seasonCount = show?.numberOfSeasons ?? 1;
+  const episodesPerSeason = 8;
+
+  return Array.from({ length: seasonCount }, (_, seasonIndex) => {
+    const seasonNumber = seasonIndex + 1;
+    const episodes = Array.from({ length: episodesPerSeason }, (_, epIndex) => {
+      const episodeNumber = epIndex + 1;
+      return {
+        episodeNumber,
+        name: `Episode ${episodeNumber}`,
+      };
+    });
+    return {
+      seasonNumber,
+      name: `Season ${seasonNumber}`,
+      episodeCount: episodes.length,
+      episodes,
+    };
+  });
 }

@@ -3,8 +3,14 @@ import {
   mockDetails,
   mockPopular,
   mockSearch,
+  mockTvSeasons,
 } from "./mock-data";
-import type { MediaDetails, MediaItem, MediaType } from "./types";
+import type {
+  MediaDetails,
+  MediaItem,
+  MediaType,
+  TvSeason,
+} from "./types";
 
 const TMDB_BASE = "https://api.themoviedb.org/3";
 export const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p";
@@ -40,6 +46,20 @@ type TmdbTvDetails = TmdbTvResult & {
   episode_run_time?: number[];
   genres?: { id: number; name: string }[];
   number_of_seasons?: number;
+  seasons?: {
+    season_number: number;
+    name: string;
+    episode_count: number;
+  }[];
+};
+
+type TmdbSeasonDetails = {
+  season_number: number;
+  name: string;
+  episodes?: {
+    episode_number: number;
+    name: string;
+  }[];
 };
 
 function apiKey(): string {
@@ -188,6 +208,42 @@ export async function getDetails(
     };
   } catch {
     return null;
+  }
+}
+
+/** Regular seasons only (skips specials / season 0). */
+export async function getTvSeasons(id: number): Promise<TvSeason[]> {
+  if (isUsingMockData()) {
+    return mockTvSeasons(id);
+  }
+
+  try {
+    const show = await tmdbFetch<TmdbTvDetails>(`/tv/${id}`);
+    const seasonNumbers = (show.seasons ?? [])
+      .map((s) => s.season_number)
+      .filter((n) => n > 0);
+
+    const seasons = await Promise.all(
+      seasonNumbers.map(async (seasonNumber) => {
+        const data = await tmdbFetch<TmdbSeasonDetails>(
+          `/tv/${id}/season/${seasonNumber}`,
+        );
+        const episodes = (data.episodes ?? []).map((ep) => ({
+          episodeNumber: ep.episode_number,
+          name: ep.name || `Episode ${ep.episode_number}`,
+        }));
+        return {
+          seasonNumber,
+          name: data.name || `Season ${seasonNumber}`,
+          episodeCount: episodes.length,
+          episodes,
+        } satisfies TvSeason;
+      }),
+    );
+
+    return seasons.filter((s) => s.episodes.length > 0);
+  } catch {
+    return [];
   }
 }
 

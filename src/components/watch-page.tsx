@@ -6,6 +6,7 @@ import { PlayerEmbed } from "@/components/player-embed";
 import {
   backdropUrl,
   getDetails,
+  getTvSeasons,
   posterUrl,
   yearFromDate,
 } from "@/lib/tmdb";
@@ -14,13 +15,11 @@ import type { MediaType } from "@/lib/types";
 export async function WatchPage({
   mediaType,
   id,
-  sourceId,
   season,
   episode,
 }: {
   mediaType: MediaType;
   id: number;
-  sourceId?: string;
   season?: number;
   episode?: number;
 }) {
@@ -29,12 +28,14 @@ export async function WatchPage({
   const details = await getDetails(mediaType, id);
   if (!details) notFound();
 
+  const seasons =
+    mediaType === "tv" ? await getTvSeasons(details.id) : undefined;
+
   const backdrop = backdropUrl(details.backdropPath);
   const poster = posterUrl(details.posterPath, "w500");
   const year = yearFromDate(details.releaseDate);
   const backHref = mediaType === "movie" ? "/movies" : "/tv";
   const typeLabel = mediaType === "movie" ? "Movie" : "TV Series";
-  const pathname = `${backHref}/${details.id}`;
 
   return (
     <div className="flex-1">
@@ -119,25 +120,15 @@ export async function WatchPage({
           <h2 className="font-[family-name:var(--font-display)] text-2xl tracking-wide text-[var(--fg)]">
             Watch
           </h2>
-          <p className="text-xs text-[var(--muted)]">
-            Powered by vidsrc · TMDB ID {details.id}
-          </p>
         </div>
         <PlayerEmbed
           mediaType={mediaType}
           tmdbId={details.id}
           title={details.title}
-          sourceId={sourceId}
-          season={season}
-          episode={episode}
-          pathname={pathname}
+          initialSeason={season}
+          initialEpisode={episode}
+          seasons={seasons}
         />
-        {mediaType === "tv" ? (
-          <p className="mt-3 text-sm text-[var(--muted)]">
-            Pick season/episode above, or use the player&apos;s own picker when
-            the source provides one.
-          </p>
-        ) : null}
       </section>
     </div>
   );

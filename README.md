@@ -35,7 +35,7 @@ Without a key, the app runs in **demo mode** with a curated list so the flow sti
 
 ### Player tips
 
-Watch pages use a **Play** button (click to load the embed), plus alternate sources (Vidsrc.io / .me / .pm / .sh / 2Embed). If one source stalls, switch to another.
+TV pages use season/episode dropdowns. Embed sources are tried automatically in the background if one fails — no source names are shown. Use **Still not playing? Try another server** if needed.
 
 ## Stack
 

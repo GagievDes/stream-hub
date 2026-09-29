@@ -17,3 +17,15 @@ export type MediaDetails = MediaItem & {
   genres: string[];
   numberOfSeasons: number | null;
 };
+
+export type TvEpisode = {
+  episodeNumber: number;
+  name: string;
+};
+
+export type TvSeason = {
+  seasonNumber: number;
+  name: string;
+  episodeCount: number;
+  episodes: TvEpisode[];
+};
