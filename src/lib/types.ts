@@ -29,3 +29,25 @@ export type TvSeason = {
   episodeCount: number;
   episodes: TvEpisode[];
 };
+
+export type CastMember = {
+  id: number;
+  name: string;
+  character: string;
+  profilePath: string | null;
+  order: number;
+};
+
+export type PersonDetails = {
+  id: number;
+  name: string;
+  biography: string;
+  birthday: string | null;
+  placeOfBirth: string | null;
+  profilePath: string | null;
+  knownForDepartment: string | null;
+};
+
+export type PersonCredit = MediaItem & {
+  character: string | null;
+};

@@ -1,14 +1,20 @@
 import {
   isUsingMockData,
+  mockCast,
   mockDetails,
+  mockPerson,
+  mockPersonCredits,
   mockPopular,
   mockSearch,
   mockTvSeasons,
 } from "./mock-data";
 import type {
+  CastMember,
   MediaDetails,
   MediaItem,
   MediaType,
+  PersonCredit,
+  PersonDetails,
   TvSeason,
 } from "./types";
 
@@ -118,6 +124,14 @@ function mapTv(item: TmdbTvResult): MediaItem {
 export function posterUrl(
   path: string | null,
   size: "w342" | "w500" | "w780" | "original" = "w500",
+): string | null {
+  if (!path) return null;
+  return `${TMDB_IMAGE_BASE}/${size}${path}`;
+}
+
+export function profileUrl(
+  path: string | null,
+  size: "w185" | "w342" | "h632" = "w185",
 ): string | null {
   if (!path) return null;
   return `${TMDB_IMAGE_BASE}/${size}${path}`;
@@ -242,6 +256,131 @@ export async function getTvSeasons(id: number): Promise<TvSeason[]> {
     );
 
     return seasons.filter((s) => s.episodes.length > 0);
+  } catch {
+    return [];
+  }
+}
+
+export async function getCast(
+  type: MediaType,
+  id: number,
+): Promise<CastMember[]> {
+  if (isUsingMockData()) {
+    return mockCast(type, id);
+  }
+
+  try {
+    const data = await tmdbFetch<{
+      cast: {
+        id: number;
+        name: string;
+        character?: string;
+        profile_path: string | null;
+        order?: number;
+      }[];
+    }>(`/${type}/${id}/credits`);
+
+    return (data.cast ?? [])
+      .slice()
+      .sort((a, b) => (a.order ?? 999) - (b.order ?? 999))
+      .slice(0, 16)
+      .map((member) => ({
+        id: member.id,
+        name: member.name,
+        character: member.character || "",
+        profilePath: member.profile_path,
+        order: member.order ?? 999,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+export async function getPerson(id: number): Promise<PersonDetails | null> {
+  if (isUsingMockData()) {
+    return mockPerson(id);
+  }
+
+  try {
+    const person = await tmdbFetch<{
+      id: number;
+      name: string;
+      biography?: string;
+      birthday?: string | null;
+      place_of_birth?: string | null;
+      profile_path: string | null;
+      known_for_department?: string | null;
+    }>(`/person/${id}`);
+
+    return {
+      id: person.id,
+      name: person.name,
+      biography: person.biography || "",
+      birthday: person.birthday ?? null,
+      placeOfBirth: person.place_of_birth ?? null,
+      profilePath: person.profile_path,
+      knownForDepartment: person.known_for_department ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function getPersonCredits(id: number): Promise<PersonCredit[]> {
+  if (isUsingMockData()) {
+    return mockPersonCredits(id);
+  }
+
+  try {
+    const data = await tmdbFetch<{
+      cast: {
+        id: number;
+        title?: string;
+        name?: string;
+        overview?: string;
+        poster_path: string | null;
+        backdrop_path: string | null;
+        release_date?: string;
+        first_air_date?: string;
+        vote_average?: number;
+        character?: string;
+        media_type?: "movie" | "tv";
+        popularity?: number;
+      }[];
+    }>(`/person/${id}/combined_credits`);
+
+    const credits = (data.cast ?? [])
+      .filter((item) => item.media_type === "movie" || item.media_type === "tv")
+      .map((item) => {
+        const mediaType = item.media_type as MediaType;
+        return {
+          id: item.id,
+          title: (mediaType === "movie" ? item.title : item.name) || "Untitled",
+          overview: item.overview ?? "",
+          posterPath: item.poster_path,
+          backdropPath: item.backdrop_path,
+          releaseDate:
+            (mediaType === "movie" ? item.release_date : item.first_air_date) ??
+            null,
+          voteAverage: item.vote_average ?? 0,
+          mediaType,
+          character: item.character || null,
+        } satisfies PersonCredit;
+      })
+      .sort((a, b) => {
+        const da = a.releaseDate || "";
+        const db = b.releaseDate || "";
+        return db.localeCompare(da);
+      });
+
+    // Dedupe by media type + id
+    const seen = new Set<string>();
+    return credits.filter((credit) => {
+      const key = `${credit.mediaType}-${credit.id}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   } catch {
     return [];
   }

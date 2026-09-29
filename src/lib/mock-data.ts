@@ -1,4 +1,12 @@
-import type { MediaDetails, MediaItem, MediaType, TvSeason } from "./types";
+import type {
+  CastMember,
+  MediaDetails,
+  MediaItem,
+  MediaType,
+  PersonCredit,
+  PersonDetails,
+  TvSeason,
+} from "./types";
 
 /** Curated titles with real TMDB IDs and poster paths for offline/demo mode. */
 const movies: MediaDetails[] = [
@@ -313,4 +321,83 @@ export function mockTvSeasons(id: number): TvSeason[] {
       episodes,
     };
   });
+}
+
+const mockPeople: Record<number, PersonDetails> = {
+  53820: {
+    id: 53820,
+    name: "Michael C. Hall",
+    biography:
+      "American actor best known for playing Dexter Morgan in Dexter and David Fisher in Six Feet Under.",
+    birthday: "1971-02-08",
+    placeOfBirth: "Raleigh, North Carolina, USA",
+    profilePath: "/7zUMGoujuev5PUwwv4Gl6ikB50k.jpg",
+    knownForDepartment: "Acting",
+  },
+  53828: {
+    id: 53828,
+    name: "Jennifer Carpenter",
+    biography: "American actress known for portraying Debra Morgan in Dexter.",
+    birthday: "1979-12-07",
+    placeOfBirth: "Louisville, Kentucky, USA",
+    profilePath: "/sQeNgRFfCjt3EHMuaJBm8jRCLgw.jpg",
+    knownForDepartment: "Acting",
+  },
+  6193: {
+    id: 6193,
+    name: "Leonardo DiCaprio",
+    biography: "American actor and producer.",
+    birthday: "1974-11-11",
+    placeOfBirth: "Los Angeles, California, USA",
+    profilePath: "/wo2hJpn04vbtmh0B9utCFdsQhxM.jpg",
+    knownForDepartment: "Acting",
+  },
+};
+
+function buildMockCredits(): PersonCredit[] {
+  return [
+    ...movies.slice(0, 5).map((item) => ({ ...toItem(item), character: null })),
+    ...tvShows.slice(0, 4).map((item) => ({ ...toItem(item), character: null })),
+  ];
+}
+
+export function mockCast(type: MediaType, id: number): CastMember[] {
+  if (type === "tv" && id === 1405) {
+    return [
+      {
+        id: 53820,
+        name: "Michael C. Hall",
+        character: "Dexter Morgan",
+        profilePath: "/7zUMGoujuev5PUwwv4Gl6ikB50k.jpg",
+        order: 0,
+      },
+      {
+        id: 53828,
+        name: "Jennifer Carpenter",
+        character: "Debra Morgan",
+        profilePath: "/sQeNgRFfCjt3EHMuaJBm8jRCLgw.jpg",
+        order: 1,
+      },
+    ];
+  }
+  if (type === "movie" && id === 27205) {
+    return [
+      {
+        id: 6193,
+        name: "Leonardo DiCaprio",
+        character: "Dom Cobb",
+        profilePath: "/wo2hJpn04vbtmh0B9utCFdsQhxM.jpg",
+        order: 0,
+      },
+    ];
+  }
+  return [];
+}
+
+export function mockPerson(id: number): PersonDetails | null {
+  return mockPeople[id] ?? null;
+}
+
+export function mockPersonCredits(_id: number): PersonCredit[] {
+  return buildMockCredits();
 }

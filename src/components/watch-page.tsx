@@ -2,9 +2,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { CastRow } from "@/components/cast-row";
 import { PlayerEmbed } from "@/components/player-embed";
 import {
   backdropUrl,
+  getCast,
   getDetails,
   getTvSeasons,
   posterUrl,
@@ -28,8 +30,10 @@ export async function WatchPage({
   const details = await getDetails(mediaType, id);
   if (!details) notFound();
 
-  const seasons =
-    mediaType === "tv" ? await getTvSeasons(details.id) : undefined;
+  const [seasons, cast] = await Promise.all([
+    mediaType === "tv" ? getTvSeasons(details.id) : Promise.resolve(undefined),
+    getCast(mediaType, details.id),
+  ]);
 
   const backdrop = backdropUrl(details.backdropPath);
   const poster = posterUrl(details.posterPath, "w500");
@@ -129,6 +133,7 @@ export async function WatchPage({
           initialEpisode={episode}
           seasons={seasons}
         />
+        <CastRow cast={cast} />
       </section>
     </div>
   );

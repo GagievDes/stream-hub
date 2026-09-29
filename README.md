@@ -1,44 +1,51 @@
 # Lumina
 
-Browse **movies** and **TV series** by name using [The Movie Database (TMDB)](https://www.themoviedb.org/), then play them through [vidsrc.io](https://vidsrc.io/) embeds. You never type TMDB IDs — names are shown in the UI; IDs are used only under the hood.
+A **local** Movies & TV app. Search titles by name via [TMDB](https://www.themoviedb.org/), watch through vidsrc embeds, and browse cast filmography.
 
 ## How it works
 
-1. **Home** — choose **Movies** or **TV Series**
-2. **Browse / search** — popular titles load from TMDB; search by name
-3. **Watch** — open a title; the page embeds `vidsrc.io` with that title’s TMDB ID  
-   - Movie: `https://vidsrc.io/embed/movie/{tmdbId}`  
-   - TV: `https://vidsrc.io/embed/tv/{tmdbId}` (built-in season/episode picker)
+1. **Home** — big **Movies** / **TV Series** launcher
+2. **Browse / search** — find titles by name
+3. **Watch** — play with season/episode dropdowns (TV)
+4. **Cast** — open an actor to see their other movies & shows
 
-## Run locally
+## Run in the browser (simplest)
 
 ```bash
 npm install
 cp .env.example .env.local
-# Put your TMDB API key in .env.local (required for full search)
+# Add: TMDB_API_KEY=your_key
 npm run dev
 ```
 
 Open [http://127.0.0.1:3847](http://127.0.0.1:3847).
 
-### TMDB API key
+## Run as a local desktop app
 
-1. Create a free account at [themoviedb.org](https://www.themoviedb.org/signup)
-2. Request an API key under **Settings → API**
-3. In `.env.local`:
+This opens Lumina in its own window (Electron), not a normal browser tab.
+
+```bash
+npm install
+cp .env.example .env.local
+# Add your TMDB_API_KEY
+npm run app
+```
+
+`npm run app` builds the project, starts the local server, and opens the Lumina window.
+
+> On Windows: run these commands in **WSL** or a Node.js terminal where `npm` works. The desktop window needs a GUI (Windows desktop / WSLg).
+
+### TMDB API key
 
 ```bash
 TMDB_API_KEY=your_key_here
 ```
 
-Without a key, the app runs in **demo mode** with a curated list so the flow still works. With a key, search hits the live TMDB API.
-
-### Player tips
-
-TV pages use season/episode dropdowns. Embed sources are tried automatically in the background if one fails — no source names are shown. Use **Still not playing? Try another server** if needed.
+Get a free key at [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api).
 
 ## Stack
 
-- Next.js (App Router) + TypeScript + Tailwind CSS
-- TMDB API for names, posters, and IDs
-- vidsrc.io iframe embeds for playback
+- Next.js + TypeScript + Tailwind
+- TMDB for titles, cast, and filmography
+- Electron optional shell for the local window
+- vidsrc embeds for playback (auto server failover)

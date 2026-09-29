@@ -17,11 +17,12 @@ const body = Figtree({
 
 export const metadata: Metadata = {
   title: {
-    default: "Lumina — Find movies & TV by name",
+    default: "Lumina",
     template: "%s · Lumina",
   },
   description:
-    "Browse movies and TV series by name via TMDB, then watch with vidsrc embeds using TMDB IDs.",
+    "Local Movies & TV app — browse by name, watch episodes, and explore cast filmography.",
+  applicationName: "Lumina",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
