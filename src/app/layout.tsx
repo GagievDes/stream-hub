@@ -23,8 +23,8 @@ export const metadata: Metadata = {
     "Strain Stream — browse movies and TV series, watch episodes, and continue where you left off.",
   applicationName: "Strain Stream",
   icons: {
-    icon: [{ url: "/favicon.png", type: "image/png" }],
-    apple: [{ url: "/icon-192.png" }],
+    icon: [{ url: "/favicon.png?v=2", type: "image/png" }],
+    apple: [{ url: "/icon-192.png?v=2" }],
   },
 };
 

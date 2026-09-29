@@ -26,10 +26,11 @@ export function SiteHeader() {
           <Image
             src="/logo.png"
             alt="Strain Stream"
-            width={40}
-            height={40}
-            className="size-9 sm:size-10"
+            width={44}
+            height={44}
+            className="size-10 sm:size-11"
             priority
+            unoptimized
           />
           <span className="font-[family-name:var(--font-display)] text-xl tracking-[0.08em] text-[var(--fg)] sm:text-2xl">
             STRAIN STREAM
