@@ -13,11 +13,11 @@ export default function HomePage() {
       <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col justify-center px-5 py-10 sm:py-14">
         <div className="mb-10 flex flex-col items-center text-center sm:mb-14">
           <Image
-            src="/logo.png?v=2"
+            src="/logo.png"
             alt="Strain Stream"
-            width={140}
-            height={140}
-            className="animate-rise size-28 sm:size-36"
+            width={160}
+            height={160}
+            className="animate-rise size-32 sm:size-40"
             priority
             unoptimized
           />
