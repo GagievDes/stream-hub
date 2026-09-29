@@ -1,78 +1,73 @@
 # Lumina
 
-A **local** Movies & TV app. Search titles by name via [TMDB](https://www.themoviedb.org/), watch through vidsrc embeds, and browse cast filmography.
+Local **Movies & TV desktop app** (and optional browser mode).
 
-## How it works
+## Run as a Windows desktop app (what you want)
 
-1. **Home** — big **Movies** / **TV Series** launcher
-2. **Browse / search** — find titles by name
-3. **Watch** — play with season/episode dropdowns (TV)
-4. **Cast** — open an actor to see their other movies & shows
+Do this in **Windows**, not WSL.
 
-## Important (Windows + WSL)
+### 1) Install Node.js for Windows
 
-If `npm install` fails with `UNC paths are not supported` or looks for files in `C:\Windows`, your WSL terminal is using **Windows Node**, not Linux Node.
+Download LTS from: https://nodejs.org  
+Install it, then close and reopen terminals.
 
-Fix that first (run in WSL):
+### 2) Copy the project to a Windows folder
 
-```bash
-# Install Linux Node inside WSL (nvm)
-curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
-source ~/.bashrc
-nvm install 22
-nvm use 22
+In **PowerShell**:
 
-# Confirm you are NOT on a Windows path
-which node
-which npm
-# Should look like: /home/davit/.nvm/versions/node/...
-# NOT like: /mnt/c/Program Files/nodejs/...
+```powershell
+# Create/copy into your Windows user folder
+cd $HOME
+if (Test-Path .\stream-hub) { Remove-Item -Recurse -Force .\stream-hub }
+
+# If you already have it in WSL, copy it out:
+wsl -e bash -lc "cp -a ~/stream-hub /mnt/c/Users/$USERNAME/stream-hub"
+
+cd $HOME\stream-hub
 ```
 
-Then continue below.
+If copy fails, replace `$USERNAME` with your Windows username (folder under `C:\Users\`).
 
-## Run locally (recommended)
+Or clone fresh with Origin/git into `C:\Users\YourName\stream-hub`.
 
-```bash
-cd ~/stream-hub
+### 3) Start the desktop app
+
+**Easiest:** double-click:
+
+`start-app.bat`
+
+**Or in PowerShell:**
+
+```powershell
+cd $HOME\stream-hub
 git pull
 npm install
-cp .env.example .env.local   # only if you don't have it yet
-# Make sure .env.local contains: TMDB_API_KEY=your_key
+@"
+TMDB_API_KEY=e568d7c77dd8fe416b1bb51b6f682466
+"@ | Set-Content .env.local
+npm run app
+```
+
+A Lumina window opens (not a browser tab). Close the window to quit.
+
+## Browser mode (only if needed)
+
+Still works with:
+
+```bash
 npm run dev
 ```
 
-Open in your Windows browser:
+then open http://127.0.0.1:3847
 
-**http://127.0.0.1:3847**
+## Why not WSL for the desktop app?
 
-Leave the WSL terminal open while you use the app. Stop with `Ctrl + C`.
+Electron needs Windows GUI + Windows Node. In WSL, npm often calls Windows `cmd.exe` and fails with `UNC paths are not supported`. Use PowerShell / `start-app.bat` on Windows instead.
 
-## TMDB API key
+## Features
 
-In `.env.local`:
-
-```bash
-TMDB_API_KEY=your_key_here
-```
-
-Free key: [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api).
-
-## Optional desktop window (Electron)
-
-Electron often breaks in WSL because it needs Windows GUI + Windows Node. Prefer `npm run dev` in the browser.
-
-If you want a desktop window later, install Node on Windows, clone/copy the project to a Windows folder (for example `C:\Users\YourName\stream-hub`), then:
-
-```bat
-npm install
-npm install --save-dev electron
-npm run build
-npx electron .
-```
-
-## Stack
-
-- Next.js + TypeScript + Tailwind
-- TMDB for titles, cast, and filmography
-- vidsrc embeds for playback (auto server failover)
+- Big Movies / TV Series launcher
+- Search by name (TMDB)
+- Season/episode dropdowns
+- Cast pages with other movies/shows
+- Silent server failover for playback
