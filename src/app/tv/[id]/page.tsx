@@ -4,6 +4,7 @@ import { getDetails } from "@/lib/tmdb";
 
 type Props = {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ source?: string; s?: string; e?: string }>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -14,7 +15,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function TvWatchPage({ params }: Props) {
+export default async function TvWatchPage({ params, searchParams }: Props) {
   const { id } = await params;
-  return <WatchPage mediaType="tv" id={Number(id)} />;
+  const { source, s, e } = await searchParams;
+  return (
+    <WatchPage
+      mediaType="tv"
+      id={Number(id)}
+      sourceId={source}
+      season={Math.max(1, Number(s) || 1)}
+      episode={Math.max(1, Number(e) || 1)}
+    />
+  );
 }

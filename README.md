@@ -15,19 +15,27 @@ Browse **movies** and **TV series** by name using [The Movie Database (TMDB)](ht
 ```bash
 npm install
 cp .env.example .env.local
-# Add your free TMDB API key to .env.local
-npm run dev -- -p 3847
+# Put your TMDB API key in .env.local (required for full search)
+npm run dev
 ```
 
 Open [http://127.0.0.1:3847](http://127.0.0.1:3847).
 
-### TMDB API key (recommended)
+### TMDB API key
 
 1. Create a free account at [themoviedb.org](https://www.themoviedb.org/signup)
 2. Request an API key under **Settings → API**
-3. Set `TMDB_API_KEY=your_key` in `.env.local`
+3. In `.env.local`:
 
-Without a key, the app runs in **demo mode** with a curated list (including Dexter, Breaking Bad, Inception, etc.) so the full Movies → search → watch flow still works.
+```bash
+TMDB_API_KEY=your_key_here
+```
+
+Without a key, the app runs in **demo mode** with a curated list so the flow still works. With a key, search hits the live TMDB API.
+
+### Player tips
+
+Watch pages use a **Play** button (click to load the embed), plus alternate sources (Vidsrc.io / .me / .pm / .sh / 2Embed). If one source stalls, switch to another.
 
 ## Stack
 

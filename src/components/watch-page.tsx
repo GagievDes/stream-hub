@@ -14,9 +14,15 @@ import type { MediaType } from "@/lib/types";
 export async function WatchPage({
   mediaType,
   id,
+  sourceId,
+  season,
+  episode,
 }: {
   mediaType: MediaType;
   id: number;
+  sourceId?: string;
+  season?: number;
+  episode?: number;
 }) {
   if (!Number.isFinite(id) || id <= 0) notFound();
 
@@ -28,6 +34,7 @@ export async function WatchPage({
   const year = yearFromDate(details.releaseDate);
   const backHref = mediaType === "movie" ? "/movies" : "/tv";
   const typeLabel = mediaType === "movie" ? "Movie" : "TV Series";
+  const pathname = `${backHref}/${details.id}`;
 
   return (
     <div className="flex-1">
@@ -120,11 +127,15 @@ export async function WatchPage({
           mediaType={mediaType}
           tmdbId={details.id}
           title={details.title}
+          sourceId={sourceId}
+          season={season}
+          episode={episode}
+          pathname={pathname}
         />
         {mediaType === "tv" ? (
           <p className="mt-3 text-sm text-[var(--muted)]">
-            Use the player&apos;s built-in season and episode picker to choose
-            what to watch.
+            Pick season/episode above, or use the player&apos;s own picker when
+            the source provides one.
           </p>
         ) : null}
       </section>
