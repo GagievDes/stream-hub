@@ -5,6 +5,7 @@ import { ContinueWatchingRow } from "@/components/continue-watching-row";
 import { MediaCard } from "@/components/media-card";
 import { readContinueList } from "@/lib/continue-watching";
 import type { CatalogKey, CatalogShelf } from "@/lib/categories";
+import { syncCatalogPosters } from "@/lib/poster-cache";
 import type { MediaItem, MediaType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -42,6 +43,19 @@ export function BrowseCatalog({
       window.removeEventListener("storage", refresh);
     };
   }, [mediaType]);
+
+  useEffect(() => {
+    if (searching) return;
+    const paths = [
+      ...shelves.flatMap((shelf) =>
+        (catalogs[shelf.key] ?? []).map((item) => item.posterPath),
+      ),
+      ...readContinueList()
+        .filter((item) => item.mediaType === mediaType)
+        .map((item) => item.posterPath),
+    ];
+    void syncCatalogPosters(mediaType, paths);
+  }, [mediaType, shelves, catalogs, searching]);
 
   if (searching) {
     if (searchItems.length === 0) {

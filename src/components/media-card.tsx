@@ -1,11 +1,12 @@
-import Image from "next/image";
+"use client";
+
 import Link from "next/link";
-import { posterUrl, yearFromDate } from "@/lib/tmdb";
+import { CachedPoster } from "@/components/cached-poster";
+import { yearFromDate } from "@/lib/tmdb";
 import type { MediaItem } from "@/lib/types";
 
 export function MediaCard({ item }: { item: MediaItem }) {
   const href = `/${item.mediaType === "movie" ? "movies" : "tv"}/${item.id}`;
-  const poster = posterUrl(item.posterPath, "w500");
   const year = yearFromDate(item.releaseDate);
 
   return (
@@ -14,13 +15,11 @@ export function MediaCard({ item }: { item: MediaItem }) {
       className="group media-card block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
     >
       <div className="relative aspect-[2/3] overflow-hidden bg-[var(--surface-2)]">
-        {poster ? (
-          <Image
-            src={poster}
+        {item.posterPath ? (
+          <CachedPoster
+            posterPath={item.posterPath}
             alt={item.title}
-            fill
-            sizes="(max-width: 640px) 45vw, (max-width: 1024px) 22vw, 180px"
-            className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+            className="transition-transform duration-500 ease-out group-hover:scale-105"
           />
         ) : (
           <div className="flex h-full items-end p-4">

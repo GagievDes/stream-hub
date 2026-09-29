@@ -67,7 +67,7 @@ export async function WatchPage({
             Back to {mediaType === "movie" ? "Movies" : "TV Series"}
           </Link>
 
-          <div className="flex flex-col gap-8 md:flex-row md:items-end">
+          <div className="flex flex-col gap-8 md:flex-row md:items-start">
             {poster ? (
               <div className="relative mx-auto aspect-[2/3] w-40 shrink-0 overflow-hidden shadow-2xl shadow-black/50 md:mx-0 md:w-48">
                 <Image
@@ -114,22 +114,24 @@ export async function WatchPage({
                   {details.overview}
                 </p>
               ) : null}
-              <CastRow cast={cast} compact className="text-left" />
             </div>
           </div>
         </div>
       </section>
 
       <section className="mx-auto max-w-6xl px-5 pb-16">
-        <PlayerEmbed
-          mediaType={mediaType}
-          tmdbId={details.id}
-          title={details.title}
-          posterPath={details.posterPath}
-          initialSeason={season}
-          initialEpisode={episode}
-          seasons={seasons}
-        />
+        <CastRow cast={cast} />
+        <div className="mt-10">
+          <PlayerEmbed
+            mediaType={mediaType}
+            tmdbId={details.id}
+            title={details.title}
+            posterPath={details.posterPath}
+            initialSeason={season}
+            initialEpisode={episode}
+            seasons={seasons}
+          />
+        </div>
       </section>
     </div>
   );
