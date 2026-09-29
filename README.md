@@ -72,12 +72,11 @@ Open http://127.0.0.1:3847
 - Season/episode dropdowns
 - Cast pages with other movies/shows
 - Silent server failover for playback
-- Player iframe sandbox (blocks popup ads); desktop app also filters known ad domains
+- Desktop app filters known ad / tracker domains
 
 ### Ads in Firefox
 
 Brave blocks many player ads by default. Firefox does not.
 
-1. Lumina’s player iframe already blocks **popup** ads.
-2. For stronger blocking in Firefox, install **[uBlock Origin](https://addons.mozilla.org/firefox/addon/ublock-origin/)**.
-3. The desktop app adds extra network-level ad filtering.
+1. Install **[uBlock Origin](https://addons.mozilla.org/firefox/addon/ublock-origin/)** for Firefox.
+2. The desktop app (`start-app.bat`) adds extra network-level ad filtering.

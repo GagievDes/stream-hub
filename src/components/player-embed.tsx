@@ -195,8 +195,6 @@ export function PlayerEmbed({
           title={`${title} player`}
           allowFullScreen
           allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-          // No allow-popups: blocks most embed popup/redirect ads (Brave does this by default)
-          sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-fullscreen"
           referrerPolicy="no-referrer"
           className="absolute inset-0 h-full w-full border-0"
           onLoad={() => {
