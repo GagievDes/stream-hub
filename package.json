@@ -3,12 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "main": "electron/main.js",
+  "description": "Lumina — local Movies & TV desktop app",
+  "author": "Lumina",
   "scripts": {
     "dev": "next dev --port 3847",
-    "build": "next build",
+    "build": "next build && node scripts/prepare-standalone.mjs",
     "start": "next start --port 3847",
     "lint": "eslint",
-    "app": "npm run build && electron ."
+    "app": "npm run build && electron .",
+    "dist": "npm run build && electron-builder --win portable",
+    "dist:dir": "npm run build && electron-builder --win dir"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
@@ -25,9 +29,48 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "electron": "^44.5.0",
+    "electron-builder": "^26.15.3",
     "eslint": "^9",
     "eslint-config-next": "16.3.7",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "build": {
+    "appId": "com.lumina.desktop",
+    "productName": "Lumina",
+    "copyright": "Copyright © Lumina",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": ".next/standalone",
+        "to": "app",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "Lumina-Portable.exe",
+      "signAndEditExecutable": false
+    },
+    "portable": {
+      "artifactName": "Lumina-Portable.exe"
+    }
   }
 }

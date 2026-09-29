@@ -31,6 +31,7 @@ tar -cf - \
   --exclude=./.next \
   --exclude=./.git \
   --exclude=./.env.local \
+  --exclude=./dist \
   . | tar -C "$DEST" -xf -
 
 # Keep / write API key on the Windows copy

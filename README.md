@@ -2,32 +2,41 @@
 
 Local **Movies & TV desktop app** for Windows.
 
-## Desktop app (simple path)
+## Portable EXE (one file)
 
-### 1) Install Node.js for Windows
-https://nodejs.org → **LTS** → install → close and reopen terminals.
+Build this **on Windows** (with Node.js LTS installed):
 
-### 2) Sync the project (in WSL)
+```bat
+cd %USERPROFILE%\stream-hub
+npm.cmd install
+npm.cmd run dist
+```
+
+When it finishes, get:
+
+`dist\Lumina-Portable.exe`
+
+Copy that single file anywhere (USB, Desktop) and double-click. No install, no browser.
+
+> It’s a real Electron desktop app packed as a portable EXE (same idea as portable Discord/apps). First launch may unpack briefly into a temp folder — that’s normal.
+
+### Sync latest code from WSL first (if needed)
 
 ```bash
 cd ~/stream-hub
 git pull
-bash scripts/sync-to-windows.sh
-```
-
-If it asks for a username, use your Windows folder name under `C:\Users\` (yours is likely `davit`):
-
-```bash
 bash scripts/sync-to-windows.sh davit
 ```
 
-### 3) Start the app (on Windows)
+Then run the `npm.cmd run dist` commands above in **Command Prompt** inside `C:\Users\davit\stream-hub`.
 
-Open File Explorer → `C:\Users\davit\stream-hub` → double-click **`start-app.bat`**.
+## Dev desktop window (no packaging)
 
-That installs dependencies, builds, and opens the Lumina window.
+Double-click `start-app.bat`, or:
 
-Do **not** copy `node_modules` from WSL. Do **not** use PowerShell for `npm` (it blocks `npm.ps1`). Use the `.bat` file or Command Prompt with `npm.cmd`.
+```bat
+npm.cmd run app
+```
 
 ## Browser mode
 
@@ -48,9 +57,8 @@ Open http://127.0.0.1:3847
 - Season/episode dropdowns
 - Cast pages with other movies/shows
 - Silent server failover for playback
-- Desktop app filters known ad / tracker domains
+- Desktop / portable app blocks popup ads and many ad domains
 
 ### Ads in Firefox
 
-1. Install **[uBlock Origin](https://addons.mozilla.org/firefox/addon/ublock-origin/)**.
-2. Desktop app (`start-app.bat`) also filters many ad domains.
+Install **[uBlock Origin](https://addons.mozilla.org/firefox/addon/ublock-origin/)**. The portable/desktop app already blocks popups.

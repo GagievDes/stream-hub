@@ -1,5 +1,6 @@
 const { app, BrowserWindow, session } = require("electron");
 const path = require("path");
+const fs = require("fs");
 const { spawn } = require("child_process");
 const http = require("http");
 
@@ -58,7 +59,6 @@ const BLOCKED_HOST_SNIPPETS = [
 
 function isBlockedUrl(url) {
   const lower = url.toLowerCase();
-  // Never block the app itself or main embed hosts
   if (
     lower.includes("127.0.0.1") ||
     lower.includes("localhost") ||
@@ -68,7 +68,6 @@ function isBlockedUrl(url) {
     lower.includes("image.tmdb.org") ||
     lower.includes("cloudorchestranova.com")
   ) {
-    // Still block ad paths on otherwise-allowed hosts when obvious
     if (lower.includes("doubleclick") || lower.includes("googlesyndication")) {
       return true;
     }
@@ -88,7 +87,52 @@ function installAdBlock() {
   });
 }
 
-function waitForServer(url, attempts = 80) {
+function readEnvFile(filePath) {
+  try {
+    const text = fs.readFileSync(filePath, "utf8");
+    const out = {};
+    for (const line of text.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const eq = trimmed.indexOf("=");
+      if (eq === -1) continue;
+      const key = trimmed.slice(0, eq).trim();
+      let value = trimmed.slice(eq + 1).trim();
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1);
+      }
+      out[key] = value;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function resolveTmdbKey() {
+  if (process.env.TMDB_API_KEY?.trim()) return process.env.TMDB_API_KEY.trim();
+
+  const candidates = [];
+  if (app.isPackaged) {
+    candidates.push(path.join(process.resourcesPath, "app", ".env.local"));
+    candidates.push(path.join(path.dirname(process.execPath), ".env.local"));
+  } else {
+    candidates.push(path.join(__dirname, "..", ".env.local"));
+  }
+
+  for (const file of candidates) {
+    const key = readEnvFile(file).TMDB_API_KEY?.trim();
+    if (key) return key;
+  }
+
+  // Local-only fallback (same key used in start-app.bat)
+  return "e568d7c77dd8fe416b1bb51b6f682466";
+}
+
+function waitForServer(url, attempts = 100) {
   return new Promise((resolve, reject) => {
     let left = attempts;
     const ping = () => {
@@ -99,7 +143,7 @@ function waitForServer(url, attempts = 80) {
       req.on("error", () => {
         left -= 1;
         if (left <= 0) reject(new Error("App server did not start in time"));
-        else setTimeout(ping, 500);
+        else setTimeout(ping, 400);
       });
     };
     ping();
@@ -107,12 +151,33 @@ function waitForServer(url, attempts = 80) {
 }
 
 function startNextServer() {
+  const tmdbKey = resolveTmdbKey();
+
+  if (app.isPackaged) {
+    // Run the Next standalone server using Electron as Node
+    const serverDir = path.join(process.resourcesPath, "app");
+    const serverJs = path.join(serverDir, "server.js");
+    nextProcess = spawn(process.execPath, [serverJs], {
+      cwd: serverDir,
+      stdio: "inherit",
+      env: {
+        ...process.env,
+        ELECTRON_RUN_AS_NODE: "1",
+        PORT: String(PORT),
+        HOSTNAME: "127.0.0.1",
+        TMDB_API_KEY: tmdbKey,
+      },
+      windowsHide: true,
+    });
+    return;
+  }
+
   const isWin = process.platform === "win32";
   const npmCmd = isWin ? "npm.cmd" : "npm";
   nextProcess = spawn(npmCmd, ["run", "start"], {
     cwd: path.join(__dirname, ".."),
     stdio: "inherit",
-    env: { ...process.env },
+    env: { ...process.env, TMDB_API_KEY: tmdbKey },
     shell: isWin,
   });
 }
@@ -134,10 +199,7 @@ async function createWindow() {
   });
 
   win.once("ready-to-show", () => win.show());
-
-  // Block popup / redirect ads entirely (do not open them externally)
   win.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
-
   await win.loadURL(APP_URL);
 }
 
@@ -157,7 +219,9 @@ app.whenReady().then(async () => {
 function cleanup() {
   if (nextProcess && !nextProcess.killed) {
     if (process.platform === "win32") {
-      spawn("taskkill", ["/pid", String(nextProcess.pid), "/f", "/t"]);
+      spawn("taskkill", ["/pid", String(nextProcess.pid), "/f", "/t"], {
+        windowsHide: true,
+      });
     } else {
       nextProcess.kill();
     }
