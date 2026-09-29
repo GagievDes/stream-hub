@@ -1,68 +1,69 @@
 # Lumina
 
-Local **Movies & TV desktop app** (and optional browser mode).
+Local **Movies & TV desktop app** for Windows.
 
-## Run as a Windows desktop app (what you want)
-
-Do this in **Windows**, not WSL.
+## Desktop app on Windows (do this)
 
 ### 1) Install Node.js for Windows
+https://nodejs.org → install **LTS** → close all terminals → reopen.
 
-Download LTS from: https://nodejs.org  
-Install it, then close and reopen terminals.
+### 2) Get a clean Windows copy (important)
 
-### 2) Copy the project to a Windows folder
+Do **not** copy `node_modules` from WSL. Install fresh on Windows.
 
-In **PowerShell**:
+Open **Command Prompt** (`cmd`), not PowerShell:
 
-```powershell
-# Create/copy into your Windows user folder
-cd $HOME
-if (Test-Path .\stream-hub) { Remove-Item -Recurse -Force .\stream-hub }
+```bat
+cd %USERPROFILE%
+if exist stream-hub rmdir /s /q stream-hub
+mkdir stream-hub
+cd stream-hub
 
-# If you already have it in WSL, copy it out:
-wsl -e bash -lc "cp -a ~/stream-hub /mnt/c/Users/$USERNAME/stream-hub"
+REM Pull source from WSL without node_modules
+wsl -e bash -lc "cd ~/stream-hub && git pull && rsync -a --delete --exclude node_modules --exclude .next --exclude .git ./ /mnt/c/Users/$USER/stream-hub/"
 
-cd $HOME\stream-hub
+cd %USERPROFILE%\stream-hub
+start-app.bat
 ```
 
-If copy fails, replace `$USERNAME` with your Windows username (folder under `C:\Users\`).
+Or, if Origin CLI / git works on Windows:
 
-Or clone fresh with Origin/git into `C:\Users\YourName\stream-hub`.
-
-### 3) Start the desktop app
-
-**Easiest:** double-click:
-
-`start-app.bat`
-
-**Or in PowerShell:**
-
-```powershell
-cd $HOME\stream-hub
-git pull
-npm install
-@"
-TMDB_API_KEY=e568d7c77dd8fe416b1bb51b6f682466
-"@ | Set-Content .env.local
-npm run app
+```bat
+cd %USERPROFILE%
+git clone https://origin.cursor.com/pavle-gagievi/stream-hub.git
+cd stream-hub
+start-app.bat
 ```
 
-A Lumina window opens (not a browser tab). Close the window to quit.
+`start-app.bat` will:
+1. write `.env.local` if missing
+2. run `npm install`
+3. build the app
+4. open the Lumina desktop window
 
-## Browser mode (only if needed)
+### If PowerShell blocks npm
 
-Still works with:
+Error: `npm.ps1 cannot be loaded because running scripts is disabled`
+
+Fix (run once in PowerShell as your user):
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
+
+Or just use **Command Prompt** / double-click `start-app.bat` (recommended).
+
+## Browser mode (already working for you)
+
+In WSL:
 
 ```bash
+cd ~/stream-hub
+git pull
 npm run dev
 ```
 
-then open http://127.0.0.1:3847
-
-## Why not WSL for the desktop app?
-
-Electron needs Windows GUI + Windows Node. In WSL, npm often calls Windows `cmd.exe` and fails with `UNC paths are not supported`. Use PowerShell / `start-app.bat` on Windows instead.
+Open http://127.0.0.1:3847
 
 ## Features
 
@@ -77,6 +78,6 @@ Electron needs Windows GUI + Windows Node. In WSL, npm often calls Windows `cmd.
 
 Brave blocks many player ads by default. Firefox does not.
 
-1. Lumina’s player iframe already blocks **popup** ads (`sandbox` without `allow-popups`).
+1. Lumina’s player iframe already blocks **popup** ads.
 2. For stronger blocking in Firefox, install **[uBlock Origin](https://addons.mozilla.org/firefox/addon/ublock-origin/)**.
-3. The desktop app (`npm run app`) adds extra network-level ad filtering.
+3. The desktop app adds extra network-level ad filtering.
