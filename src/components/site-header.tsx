@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -13,16 +14,26 @@ export function SiteHeader() {
       className={cn(
         "sticky top-0 z-40 border-b transition-colors duration-300",
         onHome
-          ? "border-transparent"
+          ? "border-transparent bg-transparent"
           : "border-[var(--line)] bg-[color-mix(in_oklab,var(--bg)_92%,transparent)] backdrop-blur-md",
       )}
     >
       <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-5 sm:h-16">
         <Link
           href="/"
-          className="font-[family-name:var(--font-display)] text-xl tracking-[0.1em] text-[var(--fg)] transition-opacity hover:opacity-80 sm:text-2xl"
+          className="flex items-center gap-2.5 transition-opacity hover:opacity-85"
         >
-          LUMINA
+          <Image
+            src="/logo.png"
+            alt="Strain Stream"
+            width={40}
+            height={40}
+            className="size-9 sm:size-10"
+            priority
+          />
+          <span className="font-[family-name:var(--font-display)] text-xl tracking-[0.08em] text-[var(--fg)] sm:text-2xl">
+            STRAIN STREAM
+          </span>
         </Link>
         {!onHome ? (
           <nav className="flex items-center gap-1 text-sm">
@@ -49,11 +60,7 @@ export function SiteHeader() {
               TV Series
             </Link>
           </nav>
-        ) : (
-          <span className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-            Local app
-          </span>
-        )}
+        ) : null}
       </div>
     </header>
   );

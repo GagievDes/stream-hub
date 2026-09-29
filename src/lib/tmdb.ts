@@ -151,16 +151,52 @@ export function yearFromDate(date: string | null): string {
 }
 
 export async function getPopular(type: MediaType): Promise<MediaItem[]> {
+  return getCatalog(type, "popular");
+}
+
+export async function getCatalog(
+  type: MediaType,
+  catalog:
+    | "popular"
+    | "trending"
+    | "top_rated"
+    | "now_playing"
+    | "on_the_air",
+): Promise<MediaItem[]> {
   if (isUsingMockData()) {
+    // Demo mode reuses the curated popular list for every shelf.
     return mockPopular(type);
   }
 
+  if (catalog === "trending") {
+    const data = await tmdbFetch<{
+      results: (TmdbMovieResult | TmdbTvResult)[];
+    }>(`/trending/${type}/week`);
+    return data.results.map((item) =>
+      type === "movie"
+        ? mapMovie(item as TmdbMovieResult)
+        : mapTv(item as TmdbTvResult),
+    );
+  }
+
   if (type === "movie") {
-    const data = await tmdbFetch<{ results: TmdbMovieResult[] }>("/movie/popular");
+    const path =
+      catalog === "top_rated"
+        ? "/movie/top_rated"
+        : catalog === "now_playing"
+          ? "/movie/now_playing"
+          : "/movie/popular";
+    const data = await tmdbFetch<{ results: TmdbMovieResult[] }>(path);
     return data.results.map(mapMovie);
   }
 
-  const data = await tmdbFetch<{ results: TmdbTvResult[] }>("/tv/popular");
+  const path =
+    catalog === "top_rated"
+      ? "/tv/top_rated"
+      : catalog === "on_the_air"
+        ? "/tv/on_the_air"
+        : "/tv/popular";
+  const data = await tmdbFetch<{ results: TmdbTvResult[] }>(path);
   return data.results.map(mapTv);
 }
 

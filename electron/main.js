@@ -188,8 +188,8 @@ async function createWindow() {
     height: 900,
     minWidth: 960,
     minHeight: 640,
-    backgroundColor: "#0b0c0e",
-    title: "Lumina",
+    backgroundColor: "#070708",
+    title: "Strain Stream",
     autoHideMenuBar: true,
     show: false,
     webPreferences: {

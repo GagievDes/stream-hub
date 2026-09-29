@@ -1,7 +1,8 @@
 import { Suspense } from "react";
-import { MediaCard } from "@/components/media-card";
+import { BrowseCatalog } from "@/components/browse-catalog";
 import { SearchBar } from "@/components/search-bar";
-import { searchMedia } from "@/lib/tmdb";
+import { catalogShelves, type CatalogKey } from "@/lib/categories";
+import { getCatalog, searchMedia } from "@/lib/tmdb";
 import type { MediaItem, MediaType } from "@/lib/types";
 
 export async function BrowsePage({
@@ -12,13 +13,29 @@ export async function BrowsePage({
   query: string;
 }) {
   const label = mediaType === "movie" ? "Movies" : "TV Series";
-  let items: MediaItem[] = [];
+  const shelves = catalogShelves(mediaType);
+  const trimmed = query.trim();
+  const searching = trimmed.length > 0;
+
+  let searchItems: MediaItem[] = [];
+  let catalogs = {} as Record<CatalogKey, MediaItem[]>;
   let error: string | null = null;
 
   try {
-    items = await searchMedia(mediaType, query);
+    if (searching) {
+      searchItems = await searchMedia(mediaType, trimmed);
+    } else {
+      const entries = await Promise.all(
+        shelves.map(async (shelf) => {
+          const items = await getCatalog(mediaType, shelf.key);
+          return [shelf.key, items] as const;
+        }),
+      );
+      catalogs = Object.fromEntries(entries) as Record<CatalogKey, MediaItem[]>;
+    }
   } catch (e) {
-    items = [];
+    searchItems = [];
+    catalogs = {} as Record<CatalogKey, MediaItem[]>;
     error = e instanceof Error ? e.message : "Failed to load titles";
   }
 
@@ -32,8 +49,7 @@ export async function BrowsePage({
           Find by name
         </h1>
         <p className="mt-3 text-[var(--muted)]">
-          Search TMDB for titles, then open any result to play via vidsrc using
-          its TMDB ID — without ever typing an ID yourself.
+          Search for your favorite {label}
         </p>
       </div>
 
@@ -51,39 +67,15 @@ export async function BrowsePage({
         <div className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
           {error}
         </div>
-      ) : items.length === 0 ? (
-        <div className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-6 py-16 text-center">
-          <p className="text-lg text-[var(--fg)]">No titles found</p>
-          <p className="mt-2 text-sm text-[var(--muted)]">
-            Try another name
-            {query ? (
-              <>
-                {" "}
-                — nothing matched &ldquo;{query}&rdquo;
-              </>
-            ) : null}
-            .
-          </p>
-        </div>
       ) : (
-        <>
-          <p className="mb-4 text-sm text-[var(--muted)]">
-            {query
-              ? `${items.length} result${items.length === 1 ? "" : "s"} for “${query}”`
-              : "Popular right now"}
-          </p>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {items.map((item, index) => (
-              <div
-                key={item.id}
-                className="animate-rise"
-                style={{ animationDelay: `${Math.min(index, 12) * 40}ms` }}
-              >
-                <MediaCard item={item} />
-              </div>
-            ))}
-          </div>
-        </>
+        <BrowseCatalog
+          mediaType={mediaType}
+          shelves={shelves}
+          catalogs={catalogs}
+          searching={searching}
+          searchItems={searchItems}
+          query={trimmed}
+        />
       )}
     </div>
   );

@@ -1,14 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #0b0c0e;
-  --fg: #f2efe8;
-  --muted: #9a958c;
-  --surface: #14161a;
-  --surface-2: #1c1f25;
-  --line: #2a2e36;
-  --accent: #d4a017;
-  --accent-hover: #e6b422;
+  --bg: #070708;
+  --fg: #f4f4f5;
+  --muted: #a1a1aa;
+  --surface: #121214;
+  --surface-2: #1a1a1e;
+  --line: #2a2a30;
+  --accent: #e11d2e;
+  --accent-hover: #ff2a3d;
+  --accent-soft: rgba(225, 29, 46, 0.16);
+  --glow: rgba(225, 29, 46, 0.22);
   --background: var(--bg);
   --foreground: var(--fg);
 }
@@ -30,8 +32,8 @@ html {
 
 body {
   background:
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(212, 160, 23, 0.12), transparent),
-    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(40, 55, 80, 0.25), transparent),
+    radial-gradient(ellipse 70% 45% at 80% -10%, var(--glow), transparent 60%),
+    radial-gradient(ellipse 50% 35% at 10% 0%, rgba(255, 255, 255, 0.04), transparent 55%),
     var(--bg);
   color: var(--fg);
   font-family: var(--font-body), system-ui, sans-serif;
@@ -60,7 +62,7 @@ a {
     opacity: 0.55;
   }
   50% {
-    opacity: 0.9;
+    opacity: 0.95;
   }
 }
 
@@ -83,10 +85,6 @@ a {
 .player-shell {
   aspect-ratio: 16 / 9;
   border: 1px solid var(--line);
-}
-
-select.episode-select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239a958c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
 }
 
 .media-card {

@@ -3,7 +3,7 @@ setlocal EnableExtensions
 cd /d "%~dp0"
 
 echo.
-echo === Lumina Desktop App (Windows) ===
+echo === Strain Stream Desktop App (Windows) ===
 echo.
 
 where node >nul 2>nul
@@ -48,7 +48,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-echo Opening Lumina window...
+echo Opening Strain Stream window...
 call %NPM% exec -- electron .
 set "ERR=%ERRORLEVEL%"
 if not "%ERR%"=="0" (

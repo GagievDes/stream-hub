@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Bebas_Neue, Figtree } from "next/font/google";
-import { DemoBanner } from "@/components/demo-banner";
 import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
 
@@ -17,12 +16,16 @@ const body = Figtree({
 
 export const metadata: Metadata = {
   title: {
-    default: "Lumina",
-    template: "%s · Lumina",
+    default: "Strain Stream",
+    template: "%s · Strain Stream",
   },
   description:
-    "Local Movies & TV app — browse by name, watch episodes, and explore cast filmography.",
-  applicationName: "Lumina",
+    "Strain Stream — browse movies and TV series, watch episodes, and continue where you left off.",
+  applicationName: "Strain Stream",
+  icons: {
+    icon: [{ url: "/favicon.png", type: "image/png" }],
+    apple: [{ url: "/icon-192.png" }],
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -32,7 +35,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${display.variable} ${body.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <DemoBanner />
         <SiteHeader />
         {children}
       </body>

@@ -3,7 +3,7 @@ setlocal EnableExtensions
 REM Sync from WSL then launch. Prefer running sync in WSL first if this fails.
 
 echo.
-echo === Sync Lumina from WSL ===
+echo === Sync Strain Stream from WSL ===
 echo.
 
 wsl.exe -e bash -lc "cd ~/stream-hub && git pull && bash scripts/sync-to-windows.sh %USERNAME%"

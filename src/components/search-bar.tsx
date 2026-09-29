@@ -19,6 +19,7 @@ export function SearchBar({
   const [query, setQuery] = useState(initialQuery);
   const [pending, startTransition] = useTransition();
   const basePath = mediaType === "movie" ? "/movies" : "/tv";
+  const label = mediaType === "movie" ? "Movies" : "TV Series";
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -42,13 +43,9 @@ export function SearchBar({
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={
-            mediaType === "movie"
-              ? "Search movies by name…"
-              : "Search TV series by name…"
-          }
+          placeholder={`Search for your favorite ${label}`}
           className="pl-10"
-          aria-label="Search by name"
+          aria-label={`Search for your favorite ${label}`}
         />
       </div>
       <Button type="submit" disabled={pending}>

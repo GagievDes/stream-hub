@@ -1,10 +1,10 @@
 {
-  "name": "lumina",
+  "name": "strain-stream",
   "version": "0.1.0",
   "private": true,
   "main": "electron/main.js",
-  "description": "Lumina — local Movies & TV desktop app",
-  "author": "Lumina",
+  "description": "Strain Stream — local Movies & TV desktop app",
+  "author": "Strain Stream",
   "scripts": {
     "dev": "next dev --port 3847",
     "build": "next build && node scripts/prepare-standalone.mjs",
@@ -36,9 +36,9 @@
     "typescript": "^5"
   },
   "build": {
-    "appId": "com.lumina.desktop",
-    "productName": "Lumina",
-    "copyright": "Copyright © Lumina",
+    "appId": "com.strainstream.desktop",
+    "productName": "Strain Stream",
+    "copyright": "Copyright © Strain Stream",
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -66,11 +66,12 @@
           ]
         }
       ],
-      "artifactName": "Lumina-Portable.exe",
-      "signAndEditExecutable": false
+      "artifactName": "Strain-Stream-Portable.exe",
+      "signAndEditExecutable": false,
+      "icon": "public/icon.ico"
     },
     "portable": {
-      "artifactName": "Lumina-Portable.exe"
+      "artifactName": "Strain-Stream-Portable.exe"
     }
   }
 }

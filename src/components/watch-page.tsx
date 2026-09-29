@@ -114,26 +114,22 @@ export async function WatchPage({
                   {details.overview}
                 </p>
               ) : null}
+              <CastRow cast={cast} compact className="text-left" />
             </div>
           </div>
         </div>
       </section>
 
       <section className="mx-auto max-w-6xl px-5 pb-16">
-        <div className="mb-4 flex items-end justify-between gap-4">
-          <h2 className="font-[family-name:var(--font-display)] text-2xl tracking-wide text-[var(--fg)]">
-            Watch
-          </h2>
-        </div>
         <PlayerEmbed
           mediaType={mediaType}
           tmdbId={details.id}
           title={details.title}
+          posterPath={details.posterPath}
           initialSeason={season}
           initialEpisode={episode}
           seasons={seasons}
         />
-        <CastRow cast={cast} />
       </section>
     </div>
   );

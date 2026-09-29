@@ -1,4 +1,4 @@
-# Lumina
+# Strain Stream
 
 Local **Movies & TV desktop app** for Windows.
 
@@ -14,7 +14,7 @@ npm.cmd run dist
 
 When it finishes, get:
 
-`dist\Lumina-Portable.exe`
+`dist\Strain-Stream-Portable.exe`
 
 Copy that single file anywhere (USB, Desktop) and double-click. No install, no browser.
 
@@ -52,10 +52,12 @@ Open http://127.0.0.1:3847
 
 ## Features
 
-- Big Movies / TV Series launcher
+- Strain Stream home with Movies / TV Series launcher
 - Search by name (TMDB)
-- Season/episode dropdowns
-- Cast pages with other movies/shows
+- Browse shelves: Popular, Trending, Top rated, Now playing / On the air
+- Continue watching (local) with remove option
+- Expandable season/episode list beside the player
+- Cast under the description
 - Silent server failover for playback
 - Desktop / portable app blocks popup ads and many ad domains
 
