@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell } = require("electron");
+const { app, BrowserWindow, session } = require("electron");
 const path = require("path");
 const { spawn } = require("child_process");
 const http = require("http");
@@ -6,6 +6,87 @@ const http = require("http");
 const PORT = 3847;
 const APP_URL = `http://127.0.0.1:${PORT}`;
 let nextProcess = null;
+
+/** Common ad / tracker hosts seen inside embed players */
+const BLOCKED_HOST_SNIPPETS = [
+  "doubleclick.net",
+  "googlesyndication.com",
+  "googleadservices.com",
+  "googletagmanager.com",
+  "googletagservices.com",
+  "adservice.google",
+  "pagead2.googlesyndication",
+  "adsystem",
+  "amazon-adsystem.com",
+  "adnxs.com",
+  "adsrvr.org",
+  "adform.net",
+  "advertising.com",
+  "popads",
+  "popcash",
+  "propellerads",
+  "exoclick",
+  "tsyndicate",
+  "juicyads",
+  "clickadu",
+  "ad-delivery",
+  "adsterra",
+  "mgid.com",
+  "taboola.com",
+  "outbrain.com",
+  "sharethis.com",
+  "lijit.com",
+  "pxdrop",
+  "pubmatic.com",
+  "openx.net",
+  "rubiconproject.com",
+  "casalemedia.com",
+  "criteo.com",
+  "moatads.com",
+  "scorecardresearch.com",
+  "quantserve.com",
+  "hotjar.com",
+  "facebook.net",
+  "facebook.com/tr",
+  "ads.",
+  "/ads/",
+  "popunder",
+  "track.",
+  "tracker.",
+  "analytics.",
+];
+
+function isBlockedUrl(url) {
+  const lower = url.toLowerCase();
+  // Never block the app itself or main embed hosts
+  if (
+    lower.includes("127.0.0.1") ||
+    lower.includes("localhost") ||
+    lower.includes("vidsrc.") ||
+    lower.includes("2embed.") ||
+    lower.includes("themoviedb.org") ||
+    lower.includes("image.tmdb.org") ||
+    lower.includes("cloudorchestranova.com")
+  ) {
+    // Still block ad paths on otherwise-allowed hosts when obvious
+    if (lower.includes("doubleclick") || lower.includes("googlesyndication")) {
+      return true;
+    }
+    return false;
+  }
+  return BLOCKED_HOST_SNIPPETS.some((snippet) => lower.includes(snippet));
+}
+
+function installAdBlock() {
+  const ses = session.defaultSession;
+  ses.webRequest.onBeforeRequest({ urls: ["*://*/*"] }, (details, callback) => {
+    if (isBlockedUrl(details.url)) {
+      callback({ cancel: true });
+      return;
+    }
+    callback({});
+  });
+}
 
 function waitForServer(url, attempts = 80) {
   return new Promise((resolve, reject) => {
@@ -54,15 +135,14 @@ async function createWindow() {
 
   win.once("ready-to-show", () => win.show());
 
-  win.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
-    return { action: "deny" };
-  });
+  // Block popup / redirect ads entirely (do not open them externally)
+  win.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
 
   await win.loadURL(APP_URL);
 }
 
 app.whenReady().then(async () => {
+  installAdBlock();
   startNextServer();
   await waitForServer(APP_URL);
   await createWindow();

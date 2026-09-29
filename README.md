@@ -71,3 +71,12 @@ Electron needs Windows GUI + Windows Node. In WSL, npm often calls Windows `cmd.
 - Season/episode dropdowns
 - Cast pages with other movies/shows
 - Silent server failover for playback
+- Player iframe sandbox (blocks popup ads); desktop app also filters known ad domains
+
+### Ads in Firefox
+
+Brave blocks many player ads by default. Firefox does not.
+
+1. Lumina’s player iframe already blocks **popup** ads (`sandbox` without `allow-popups`).
+2. For stronger blocking in Firefox, install **[uBlock Origin](https://addons.mozilla.org/firefox/addon/ublock-origin/)**.
+3. The desktop app (`npm run app`) adds extra network-level ad filtering.
