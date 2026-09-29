@@ -21,7 +21,7 @@ export function CastRow({
       <h2 className="mb-4 font-[family-name:var(--font-display)] text-2xl tracking-wide text-[var(--fg)]">
         Cast
       </h2>
-      <div className="scroll-panel max-h-[17.5rem] overflow-y-auto overscroll-contain pr-1 sm:max-h-[19rem]">
+      <div className="scroll-panel max-h-[32rem] overflow-y-auto overscroll-contain pr-1">
         <div className="grid grid-cols-4 gap-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8">
           {visible.map((member) => {
             const photo = profileUrl(member.profilePath);
