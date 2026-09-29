@@ -195,71 +195,76 @@ export function PlayerEmbed({
     <div className="space-y-4">
       {mediaType === "tv" ? (
         <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[260px_minmax(0,1fr)]">
-          <aside className="max-h-[70vh] overflow-y-auto rounded-md border border-[var(--line)] bg-[var(--surface)] lg:max-h-none lg:self-stretch">
-            <div className="sticky top-0 z-[1] border-b border-[var(--line)] bg-[var(--surface)] px-3 py-2.5">
+          <aside className="flex max-h-[50vh] flex-col overflow-hidden rounded-md border border-[var(--line)] bg-[var(--surface)] lg:h-0 lg:max-h-none lg:min-h-full">
+            <div className="shrink-0 border-b border-[var(--line)] bg-[var(--surface)] px-3 py-2.5">
               <p className="text-xs font-medium uppercase tracking-[0.16em] text-[var(--muted)]">
                 Seasons & episodes
               </p>
             </div>
-            <div className="divide-y divide-[var(--line)]">
-              {seasonOptions.map((s) => {
-                const open = expandedSeason === s.seasonNumber;
-                return (
-                  <div key={s.seasonNumber}>
-                    <button
-                      type="button"
-                      onClick={() => toggleSeason(s.seasonNumber)}
-                      className={cn(
-                        "flex w-full items-center justify-between gap-2 px-3 py-3 text-left text-sm transition-colors hover:bg-[var(--surface-2)]",
-                        open || season === s.seasonNumber
-                          ? "text-[var(--fg)]"
-                          : "text-[var(--muted)]",
-                      )}
-                    >
-                      <span className="font-medium">{s.name}</span>
-                      <ChevronDown
+            <div className="scroll-panel min-h-0 flex-1 overflow-y-auto overscroll-contain">
+              <div className="divide-y divide-[var(--line)]">
+                {seasonOptions.map((s) => {
+                  const open = expandedSeason === s.seasonNumber;
+                  return (
+                    <div key={s.seasonNumber}>
+                      <button
+                        type="button"
+                        onClick={() => toggleSeason(s.seasonNumber)}
                         className={cn(
-                          "size-4 shrink-0 transition-transform",
-                          open && "rotate-180 text-[var(--accent)]",
+                          "flex w-full items-center justify-between gap-2 px-3 py-3 text-left text-sm transition-colors hover:bg-[var(--surface-2)]",
+                          open || season === s.seasonNumber
+                            ? "text-[var(--fg)]"
+                            : "text-[var(--muted)]",
                         )}
-                      />
-                    </button>
-                    {open ? (
-                      <ul className="bg-[var(--bg)]/40 px-2 pb-2">
-                        {s.episodes.map((ep) => {
-                          const active =
-                            season === s.seasonNumber &&
-                            episode === ep.episodeNumber;
-                          return (
-                            <li key={ep.episodeNumber}>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  onEpisodeSelect(s.seasonNumber, ep.episodeNumber)
-                                }
-                                className={cn(
-                                  "mb-1 w-full rounded-md px-2.5 py-2 text-left text-sm transition-colors",
-                                  active
-                                    ? "bg-[var(--accent-soft)] text-[var(--accent)]"
-                                    : "text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--fg)]",
-                                )}
-                              >
-                                <span className="font-medium">
-                                  {ep.episodeNumber}.
-                                </span>{" "}
-                                <span className="line-clamp-2">{ep.name}</span>
-                              </button>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    ) : null}
-                  </div>
-                );
-              })}
+                      >
+                        <span className="font-medium">{s.name}</span>
+                        <ChevronDown
+                          className={cn(
+                            "size-4 shrink-0 transition-transform",
+                            open && "rotate-180 text-[var(--accent)]",
+                          )}
+                        />
+                      </button>
+                      {open ? (
+                        <ul className="bg-[var(--bg)]/40 px-2 pb-2">
+                          {s.episodes.map((ep) => {
+                            const active =
+                              season === s.seasonNumber &&
+                              episode === ep.episodeNumber;
+                            return (
+                              <li key={ep.episodeNumber}>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    onEpisodeSelect(
+                                      s.seasonNumber,
+                                      ep.episodeNumber,
+                                    )
+                                  }
+                                  className={cn(
+                                    "mb-1 w-full rounded-md px-2.5 py-2 text-left text-sm transition-colors",
+                                    active
+                                      ? "bg-[var(--accent-soft)] text-[var(--accent)]"
+                                      : "text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--fg)]",
+                                  )}
+                                >
+                                  <span className="font-medium">
+                                    {ep.episodeNumber}.
+                                  </span>{" "}
+                                  <span className="line-clamp-2">{ep.name}</span>
+                                </button>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </aside>
-          <div>{player}</div>
+          <div className="min-w-0">{player}</div>
         </div>
       ) : (
         player

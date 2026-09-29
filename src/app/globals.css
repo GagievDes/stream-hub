@@ -87,6 +87,24 @@ a {
   border: 1px solid var(--line);
 }
 
+.scroll-panel {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--accent) 55%, transparent) transparent;
+}
+
+.scroll-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scroll-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scroll-panel::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--accent) 45%, var(--line));
+  border-radius: 999px;
+}
+
 .media-card {
   transition: transform 0.35s ease, filter 0.35s ease;
 }
