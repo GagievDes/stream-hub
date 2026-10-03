@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Strain Stream</string>
+    <string name="title_activity_main">Strain Stream</string>
+    <string name="package_name">com.strainstream.app</string>
+    <string name="custom_url_scheme">com.strainstream.app</string>
+</resources>

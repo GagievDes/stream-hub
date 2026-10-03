@@ -1,3 +1,4 @@
+import { watchHref } from "@/lib/paths";
 import type { MediaType } from "@/lib/types";
 
 export const CONTINUE_STORAGE_KEY = "strain-stream-continue";
@@ -71,12 +72,7 @@ export function setExpandedSeason(showId: number, season: number) {
 }
 
 export function continueHref(item: ContinueItem): string {
-  if (item.mediaType === "tv") {
-    const s = item.season ?? 1;
-    const e = item.episode ?? 1;
-    return `/tv/${item.id}?s=${s}&e=${e}`;
-  }
-  return `/movies/${item.id}`;
+  return watchHref(item.mediaType, item.id, item.season, item.episode);
 }
 
 export function continueSubtitle(item: ContinueItem): string {

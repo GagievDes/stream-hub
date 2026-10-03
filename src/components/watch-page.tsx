@@ -1,6 +1,8 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { CastRow } from "@/components/cast-row";
 import { PlayerEmbed } from "@/components/player-embed";
@@ -12,9 +14,9 @@ import {
   posterUrl,
   yearFromDate,
 } from "@/lib/tmdb";
-import type { MediaType } from "@/lib/types";
+import type { CastMember, MediaDetails, MediaType, TvSeason } from "@/lib/types";
 
-export async function WatchPage({
+export function WatchPage({
   mediaType,
   id,
   season,
@@ -25,20 +27,77 @@ export async function WatchPage({
   season?: number;
   episode?: number;
 }) {
-  if (!Number.isFinite(id) || id <= 0) notFound();
+  const [details, setDetails] = useState<MediaDetails | null>(null);
+  const [cast, setCast] = useState<CastMember[]>([]);
+  const [seasons, setSeasons] = useState<TvSeason[] | undefined>(undefined);
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
 
-  const details = await getDetails(mediaType, id);
-  if (!details) notFound();
+  useEffect(() => {
+    if (!Number.isFinite(id) || id <= 0) {
+      setStatus("error");
+      return;
+    }
 
-  const [seasons, cast] = await Promise.all([
-    mediaType === "tv" ? getTvSeasons(details.id) : Promise.resolve(undefined),
-    getCast(mediaType, details.id),
-  ]);
+    let active = true;
+    setStatus("loading");
+    setDetails(null);
+
+    void (async () => {
+      try {
+        const nextDetails = await getDetails(mediaType, id);
+        if (!active) return;
+        if (!nextDetails) {
+          setStatus("error");
+          return;
+        }
+        const [nextSeasons, nextCast] = await Promise.all([
+          mediaType === "tv" ? getTvSeasons(nextDetails.id) : Promise.resolve(undefined),
+          getCast(mediaType, nextDetails.id),
+        ]);
+        if (!active) return;
+        setDetails(nextDetails);
+        setSeasons(nextSeasons);
+        setCast(nextCast);
+        setStatus("ready");
+      } catch {
+        if (active) setStatus("error");
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [mediaType, id]);
+
+  const backHref = mediaType === "movie" ? "/movies" : "/tv";
+
+  if (!Number.isFinite(id) || id <= 0 || status === "error") {
+    return (
+      <div className="mx-auto w-full max-w-6xl flex-1 px-5 py-16 text-center">
+        <p className="text-lg text-[var(--fg)]">Title not found</p>
+        <Link
+          href={backHref}
+          className="mt-4 inline-flex text-sm text-[var(--accent)]"
+        >
+          Back to {mediaType === "movie" ? "Movies" : "TV Series"}
+        </Link>
+      </div>
+    );
+  }
+
+  if (status === "loading" || !details) {
+    return (
+      <div className="mx-auto w-full max-w-6xl flex-1 px-5 py-16">
+        <div className="h-40 animate-pulse rounded-md bg-[var(--surface)]" />
+        <div className="mt-6 h-6 w-1/3 animate-pulse rounded bg-[var(--surface)]" />
+        <div className="mt-3 h-20 animate-pulse rounded bg-[var(--surface)]" />
+      </div>
+    );
+  }
 
   const backdrop = backdropUrl(details.backdropPath);
   const poster = posterUrl(details.posterPath, "w500");
   const year = yearFromDate(details.releaseDate);
-  const backHref = mediaType === "movie" ? "/movies" : "/tv";
   const typeLabel = mediaType === "movie" ? "Movie" : "TV Series";
 
   return (

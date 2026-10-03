@@ -32,6 +32,9 @@ tar -cf - \
   --exclude=./.git \
   --exclude=./.env.local \
   --exclude=./dist \
+  --exclude=./android/.gradle \
+  --exclude=./android/app/build \
+  --exclude=./out \
   . | tar -C "$DEST" -xf -
 
 # Keep / write API key on the Windows copy

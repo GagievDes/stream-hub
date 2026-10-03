@@ -20,6 +20,13 @@
 # production
 /build
 /dist
+/android/app/build
+/android/.gradle
+/android/local.properties
+/android/captures
+/android/.idea
+/android/*.iml
+/android/app/release
 
 # misc
 .DS_Store

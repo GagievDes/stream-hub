@@ -1,6 +1,8 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { MediaCard } from "@/components/media-card";
 import {
@@ -9,14 +11,61 @@ import {
   profileUrl,
   yearFromDate,
 } from "@/lib/tmdb";
+import type { PersonCredit, PersonDetails } from "@/lib/types";
 
-export async function PersonPage({ id }: { id: number }) {
-  if (!Number.isFinite(id) || id <= 0) notFound();
+export function PersonPage({ id }: { id: number }) {
+  const [person, setPerson] = useState<PersonDetails | null>(null);
+  const [credits, setCredits] = useState<PersonCredit[]>([]);
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
 
-  const person = await getPerson(id);
-  if (!person) notFound();
+  useEffect(() => {
+    if (!Number.isFinite(id) || id <= 0) {
+      setStatus("error");
+      return;
+    }
+    let active = true;
+    setStatus("loading");
+    void (async () => {
+      try {
+        const nextPerson = await getPerson(id);
+        if (!active) return;
+        if (!nextPerson) {
+          setStatus("error");
+          return;
+        }
+        const nextCredits = await getPersonCredits(id);
+        if (!active) return;
+        setPerson(nextPerson);
+        setCredits(nextCredits);
+        setStatus("ready");
+      } catch {
+        if (active) setStatus("error");
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [id]);
 
-  const credits = await getPersonCredits(id);
+  if (status === "error" || !Number.isFinite(id) || id <= 0) {
+    return (
+      <div className="mx-auto w-full max-w-6xl flex-1 px-5 py-16 text-center">
+        <p className="text-lg text-[var(--fg)]">Cast member not found</p>
+        <Link href="/" className="mt-4 inline-flex text-sm text-[var(--accent)]">
+          Back home
+        </Link>
+      </div>
+    );
+  }
+
+  if (status === "loading" || !person) {
+    return (
+      <div className="mx-auto w-full max-w-6xl flex-1 px-5 py-10">
+        <div className="h-48 animate-pulse rounded-md bg-[var(--surface)]" />
+      </div>
+    );
+  }
+
   const movies = credits.filter((c) => c.mediaType === "movie");
   const shows = credits.filter((c) => c.mediaType === "tv");
   const photo = profileUrl(person.profilePath, "h632");

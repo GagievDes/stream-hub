@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { CachedPoster } from "@/components/cached-poster";
+import { watchHref } from "@/lib/paths";
 import { yearFromDate } from "@/lib/tmdb";
 import type { MediaItem } from "@/lib/types";
 
 export function MediaCard({ item }: { item: MediaItem }) {
-  const href = `/${item.mediaType === "movie" ? "movies" : "tv"}/${item.id}`;
+  const href = watchHref(item.mediaType, item.id);
   const year = yearFromDate(item.releaseDate);
 
   return (

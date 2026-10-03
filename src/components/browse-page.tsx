@@ -1,43 +1,82 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
 import { Suspense } from "react";
-import { BrowseCatalog } from "@/components/browse-catalog";
+import { useSearchParams } from "next/navigation";
 import { SearchBar } from "@/components/search-bar";
+import { BrowseCatalog } from "@/components/browse-catalog";
 import { catalogShelves, type CatalogKey } from "@/lib/categories";
 import { getCatalog, searchMedia } from "@/lib/tmdb";
 import type { MediaItem, MediaType } from "@/lib/types";
 
-export async function BrowsePage({
-  mediaType,
-  query,
-}: {
-  mediaType: MediaType;
-  query: string;
-}) {
+export function BrowsePage({ mediaType }: { mediaType: MediaType }) {
+  return (
+    <Suspense
+      fallback={
+        <div className="mx-auto w-full max-w-6xl flex-1 px-5 py-10">
+          <div className="h-12 animate-pulse rounded-md bg-[var(--surface)]" />
+        </div>
+      }
+    >
+      <BrowsePageInner mediaType={mediaType} />
+    </Suspense>
+  );
+}
+
+function BrowsePageInner({ mediaType }: { mediaType: MediaType }) {
+  const searchParams = useSearchParams();
+  const query = searchParams.get("q") ?? "";
   const label = mediaType === "movie" ? "Movies" : "TV Series";
-  const shelves = catalogShelves(mediaType);
+  const shelves = useMemo(() => catalogShelves(mediaType), [mediaType]);
   const trimmed = query.trim();
   const searching = trimmed.length > 0;
 
-  let searchItems: MediaItem[] = [];
-  let catalogs = {} as Record<CatalogKey, MediaItem[]>;
-  let error: string | null = null;
+  const [searchItems, setSearchItems] = useState<MediaItem[]>([]);
+  const [catalogs, setCatalogs] = useState<Record<CatalogKey, MediaItem[]>>(
+    {} as Record<CatalogKey, MediaItem[]>,
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  try {
-    if (searching) {
-      searchItems = await searchMedia(mediaType, trimmed);
-    } else {
-      const entries = await Promise.all(
-        shelves.map(async (shelf) => {
-          const items = await getCatalog(mediaType, shelf.key);
-          return [shelf.key, items] as const;
-        }),
-      );
-      catalogs = Object.fromEntries(entries) as Record<CatalogKey, MediaItem[]>;
-    }
-  } catch (e) {
-    searchItems = [];
-    catalogs = {} as Record<CatalogKey, MediaItem[]>;
-    error = e instanceof Error ? e.message : "Failed to load titles";
-  }
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError(null);
+
+    void (async () => {
+      try {
+        if (searching) {
+          const items = await searchMedia(mediaType, trimmed);
+          if (!active) return;
+          setSearchItems(items);
+          setCatalogs({} as Record<CatalogKey, MediaItem[]>);
+        } else {
+          const entries = await Promise.all(
+            shelves.map(async (shelf) => {
+              const items = await getCatalog(mediaType, shelf.key);
+              return [shelf.key, items] as const;
+            }),
+          );
+          if (!active) return;
+          setSearchItems([]);
+          setCatalogs(
+            Object.fromEntries(entries) as Record<CatalogKey, MediaItem[]>,
+          );
+        }
+      } catch (e) {
+        if (!active) return;
+        setSearchItems([]);
+        setCatalogs({} as Record<CatalogKey, MediaItem[]>);
+        setError(e instanceof Error ? e.message : "Failed to load titles");
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [mediaType, searching, trimmed, shelves]);
 
   return (
     <div className="mx-auto w-full max-w-6xl flex-1 px-5 py-10">
@@ -54,18 +93,21 @@ export async function BrowsePage({
       </div>
 
       <div className="mb-8 max-w-2xl animate-rise-delay">
-        <Suspense
-          fallback={
-            <div className="h-12 animate-pulse rounded-md bg-[var(--surface)]" />
-          }
-        >
-          <SearchBar mediaType={mediaType} initialQuery={query} />
-        </Suspense>
+        <SearchBar mediaType={mediaType} initialQuery={query} />
       </div>
 
       {error ? (
         <div className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
           {error}
+        </div>
+      ) : loading ? (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div
+              key={i}
+              className="aspect-[2/3] animate-pulse rounded-md bg-[var(--surface)]"
+            />
+          ))}
         </div>
       ) : (
         <BrowseCatalog

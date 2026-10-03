@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { personHref } from "@/lib/paths";
 import { profileUrl } from "@/lib/tmdb";
 import type { CastMember } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -28,7 +29,7 @@ export function CastRow({
             return (
               <Link
                 key={`${member.id}-${member.character}`}
-                href={`/person/${member.id}`}
+                href={personHref(member.id)}
                 className="group min-w-0"
               >
                 <div className="relative aspect-[2/3] overflow-hidden bg-[var(--surface-2)]">

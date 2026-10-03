@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Bebas_Neue, Figtree } from "next/font/google";
+import { NativeShell } from "@/components/native-shell";
 import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
 
@@ -28,13 +29,18 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html
       lang="en"
       className={`${display.variable} ${body.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <NativeShell />
         <SiteHeader />
         {children}
       </body>

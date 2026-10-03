@@ -68,8 +68,13 @@ type TmdbSeasonDetails = {
   }[];
 };
 
+const FALLBACK_TMDB_KEY = "e568d7c77dd8fe416b1bb51b6f682466";
+
 function apiKey(): string {
-  const key = process.env.TMDB_API_KEY?.trim();
+  const key =
+    process.env.NEXT_PUBLIC_TMDB_API_KEY?.trim() ||
+    process.env.TMDB_API_KEY?.trim() ||
+    FALLBACK_TMDB_KEY;
   if (!key) {
     throw new Error("TMDB_API_KEY is not configured");
   }
@@ -84,9 +89,10 @@ async function tmdbFetch<T>(path: string, params: Record<string, string> = {}): 
     url.searchParams.set(key, value);
   }
 
-  const response = await fetch(url.toString(), {
-    next: { revalidate: 3600 },
-  });
+  const response = await fetch(
+    url.toString(),
+    typeof window === "undefined" ? { next: { revalidate: 3600 } } : undefined,
+  );
 
   if (!response.ok) {
     throw new Error(`TMDB request failed (${response.status})`);

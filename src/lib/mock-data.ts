@@ -296,7 +296,7 @@ export function mockDetails(
 }
 
 export function isUsingMockData(): boolean {
-  return !process.env.TMDB_API_KEY?.trim();
+  return false;
 }
 
 /** Simple episode lists for demo mode when TMDB key is missing. */

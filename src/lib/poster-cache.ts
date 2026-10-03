@@ -111,16 +111,26 @@ export async function ensurePosterCached(
   if (!remote) return null;
 
   try {
-    const response = await fetch(
+    const proxied = await fetch(
       `/api/poster?path=${encodeURIComponent(posterPath)}&size=${size}`,
     );
+    const response = proxied.ok ? proxied : await fetch(remote);
     if (!response.ok) return remote;
     const blob = await response.blob();
     if (!blob.type.startsWith("image/")) return remote;
     await writeCachedPoster(posterPath, blob, size);
     return URL.createObjectURL(blob);
   } catch {
-    return remote;
+    try {
+      const response = await fetch(remote);
+      if (!response.ok) return remote;
+      const blob = await response.blob();
+      if (!blob.type.startsWith("image/")) return remote;
+      await writeCachedPoster(posterPath, blob, size);
+      return URL.createObjectURL(blob);
+    } catch {
+      return remote;
+    }
   }
 }
 

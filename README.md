@@ -1,8 +1,8 @@
 # Strain Stream
 
-Local **Movies & TV desktop app** for Windows.
+Local **Movies & TV app** for Windows and Android.
 
-## Portable EXE (one file)
+## Portable EXE (Windows)
 
 Build this **on Windows** (with Node.js LTS installed):
 
@@ -18,7 +18,7 @@ When it finishes, get:
 
 Copy that single file anywhere (USB, Desktop) and double-click. No install, no browser.
 
-> It’s a real Electron desktop app packed as a portable EXE (same idea as portable Discord/apps). First launch may unpack briefly into a temp folder — that’s normal.
+> First launch may unpack briefly into a temp folder — that’s normal.
 
 ### Sync latest code from WSL first (if needed)
 
@@ -30,6 +30,31 @@ bash scripts/sync-to-windows.sh davit
 
 Then run the `npm.cmd run dist` commands above in **Command Prompt** inside `C:\Users\davit\stream-hub`.
 
+## Android APK
+
+The phone app is a Capacitor wrapper around the same UI. You need:
+
+1. [Node.js LTS](https://nodejs.org)
+2. [Android Studio](https://developer.android.com/studio) (installs the Android SDK)
+
+On Windows:
+
+```bat
+cd %USERPROFILE%\stream-hub
+npm.cmd install
+npm.cmd run apk
+```
+
+Or double-click `build-apk.bat`.
+
+When it finishes, get:
+
+`dist\Strain-Stream.apk`
+
+Copy that file to the phone. On the phone: **Settings → Security → Install unknown apps** (or “Allow from this source” when you open the APK), then tap `Strain-Stream.apk`.
+
+This is a **debug APK** for testing (not Play Store signed). First install may warn that it is for internal testing — that’s expected.
+
 ## Dev desktop window (no packaging)
 
 Double-click `start-app.bat`, or:
@@ -40,11 +65,7 @@ npm.cmd run app
 
 ## Browser mode
 
-In WSL:
-
 ```bash
-cd ~/stream-hub
-git pull
 npm run dev
 ```
 

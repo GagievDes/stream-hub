@@ -40,6 +40,12 @@ body {
   min-height: 100vh;
 }
 
+.native-app body,
+html.native-app body {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
 a {
   color: inherit;
   text-decoration: none;

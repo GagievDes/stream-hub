@@ -5,11 +5,6 @@ export const metadata: Metadata = {
   title: "Movies",
 };
 
-export default async function MoviesPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string }>;
-}) {
-  const { q = "" } = await searchParams;
-  return <BrowsePage mediaType="movie" query={q} />;
+export default function MoviesPage() {
+  return <BrowsePage mediaType="movie" />;
 }

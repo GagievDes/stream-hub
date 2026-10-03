@@ -1,11 +1,13 @@
 import type { NextConfig } from "next";
 
+const isStatic = process.env.STRAIN_STATIC === "1";
+
 const nextConfig: NextConfig = {
-  // Bundle a self-contained Node server for the portable desktop EXE
-  output: "standalone",
-  // Allow both localhost and 127.0.0.1 during `next dev`
+  output: isStatic ? "export" : "standalone",
+  trailingSlash: isStatic,
   allowedDevOrigins: ["127.0.0.1", "localhost"],
   images: {
+    unoptimized: isStatic,
     remotePatterns: [
       {
         protocol: "https",

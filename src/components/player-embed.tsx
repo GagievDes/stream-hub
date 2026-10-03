@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import {
   getExpandedSeason,
@@ -35,6 +35,7 @@ export function PlayerEmbed({
 }: PlayerEmbedProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const seasonOptions = useMemo<TvSeason[]>(() => {
     if (seasons.length > 0) return seasons;
@@ -105,11 +106,11 @@ export function PlayerEmbed({
 
   useEffect(() => {
     if (mediaType !== "tv") return;
-    const params = new URLSearchParams();
+    const params = new URLSearchParams(searchParams.toString());
     params.set("s", String(season));
     params.set("e", String(episode));
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-  }, [mediaType, season, episode, pathname, router]);
+  }, [mediaType, season, episode, pathname, router, searchParams]);
 
   useEffect(() => {
     upsertContinueItem({

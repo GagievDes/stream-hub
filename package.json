@@ -12,9 +12,15 @@
     "lint": "eslint",
     "app": "npm run build && electron .",
     "dist": "npm run build && electron-builder --win portable",
-    "dist:dir": "npm run build && electron-builder --win dir"
+    "dist:dir": "npm run build && electron-builder --win dir",
+    "apk": "node scripts/build-android.mjs"
   },
   "dependencies": {
+    "@capacitor/android": "^7.6.9",
+    "@capacitor/app": "^7.1.2",
+    "@capacitor/core": "^7.6.9",
+    "@capacitor/splash-screen": "^7.0.5",
+    "@capacitor/status-bar": "^7.0.6",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.48.0",
@@ -24,6 +30,7 @@
     "tailwind-merge": "^3.7.0"
   },
   "devDependencies": {
+    "@capacitor/cli": "^7.6.9",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
