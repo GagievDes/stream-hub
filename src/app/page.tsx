@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Clapperboard, Tv } from "lucide-react";
+import { publicAsset } from "@/lib/utils";
 
 export default function HomePage() {
   return (
@@ -13,7 +14,7 @@ export default function HomePage() {
       <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col justify-center px-5 py-10 sm:py-14">
         <div className="mb-10 flex flex-col items-center text-center sm:mb-14">
           <Image
-            src="/logo.png"
+            src={publicAsset("/logo.png")}
             alt="Strain Stream"
             width={160}
             height={160}

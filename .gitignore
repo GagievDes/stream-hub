@@ -16,6 +16,8 @@
 # next.js
 /.next/
 /out/
+/src/app/_api_pages_backup
+/src/app/_api_android_backup
 
 # production
 /build

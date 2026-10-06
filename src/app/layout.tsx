@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Bebas_Neue, Figtree } from "next/font/google";
 import { NativeShell } from "@/components/native-shell";
 import { SiteHeader } from "@/components/site-header";
+import { publicAsset } from "@/lib/utils";
 import "./globals.css";
 
 const display = Bebas_Neue({
@@ -24,8 +25,8 @@ export const metadata: Metadata = {
     "Strain Stream — browse movies and TV series, watch episodes, and continue where you left off.",
   applicationName: "Strain Stream",
   icons: {
-    icon: [{ url: "/favicon.png?v=2", type: "image/png" }],
-    apple: [{ url: "/icon-192.png?v=2" }],
+    icon: [{ url: `${publicAsset("/favicon.png")}?v=2`, type: "image/png" }],
+    apple: [{ url: `${publicAsset("/icon-192.png")}?v=2` }],
   },
 };
 

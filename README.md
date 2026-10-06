@@ -71,6 +71,20 @@ npm run dev
 
 Open http://127.0.0.1:3847
 
+## GitHub Pages
+
+The site can be hosted as static files. On GitHub:
+
+1. Push this repo to GitHub.
+2. Open **Settings → Pages → Build and deployment** and choose **GitHub Actions**.
+3. Merge to `main`. The **Deploy GitHub Pages** workflow publishes the site.
+
+The address is:
+
+`https://<github-user>.github.io/stream-hub/`
+
+A user site (`<user>.github.io`) or a custom domain is served from `/` instead, and the workflow picks that up automatically.
+
 ## Features
 
 - Strain Stream home with Movies / TV Series launcher

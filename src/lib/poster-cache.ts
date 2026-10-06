@@ -111,10 +111,13 @@ export async function ensurePosterCached(
   if (!remote) return null;
 
   try {
-    const proxied = await fetch(
-      `/api/poster?path=${encodeURIComponent(posterPath)}&size=${size}`,
-    );
-    const response = proxied.ok ? proxied : await fetch(remote);
+    const proxied =
+      process.env.NEXT_PUBLIC_STATIC === "1"
+        ? null
+        : await fetch(
+            `/api/poster?path=${encodeURIComponent(posterPath)}&size=${size}`,
+          );
+    const response = proxied?.ok ? proxied : await fetch(remote);
     if (!response.ok) return remote;
     const blob = await response.blob();
     if (!blob.type.startsWith("image/")) return remote;

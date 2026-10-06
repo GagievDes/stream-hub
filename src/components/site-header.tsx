@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { cn, publicAsset } from "@/lib/utils";
 
 export function SiteHeader() {
   const pathname = usePathname();
@@ -24,7 +24,7 @@ export function SiteHeader() {
           className="flex items-center gap-2.5 transition-opacity hover:opacity-85"
         >
           <Image
-            src="/logo.png"
+            src={publicAsset("/logo.png")}
             alt="Strain Stream"
             width={44}
             height={44}
