@@ -121,24 +121,20 @@ a {
 }
 
 .media-card {
-  transition: transform 0.35s ease;
+  border-radius: 18px;
+  outline: 2px solid transparent;
+  outline-offset: 4px;
+  transition: transform 0.35s ease, outline-color 0.2s ease;
 }
 
 .media-card > div {
   border-radius: 18px;
-  outline: 2px solid transparent;
-  outline-offset: 4px;
-  transition: outline-color 0.2s ease;
 }
 
 .media-card:hover,
 .media-card:focus-visible {
-  transform: translateY(-3px);
-}
-
-.media-card:hover > div,
-.media-card:focus-visible > div {
   outline-color: #fff;
+  transform: translateY(-3px);
 }
 
 [class*="--font-display"] {
@@ -237,23 +233,29 @@ a {
   display: block;
   width: 100%;
   aspect-ratio: 5 / 4;
-  overflow: hidden;
   border-radius: 22px;
-  outline: 2px solid transparent;
+  outline: 2.5px solid transparent;
   outline-offset: 5px;
-  background: #111;
   transition: transform 0.35s ease, outline-color 0.2s ease;
 }
 
-.home-card[data-kind="live"] {
+.home-card-frame {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 22px;
+  background: #111;
+}
+
+.home-card[data-kind="live"] .home-card-frame {
   background: radial-gradient(circle at 30% 40%, #3a1518, #111 68%);
 }
 
-.home-card[data-kind="tv"] {
+.home-card[data-kind="tv"] .home-card-frame {
   background: radial-gradient(circle at 50% 42%, #1c2836, #111 68%);
 }
 
-.home-card[data-kind="movie"] {
+.home-card[data-kind="movie"] .home-card-frame {
   background: radial-gradient(circle at 62% 40%, #2c2418, #111 68%);
 }
 

@@ -79,21 +79,27 @@ export function HomeScreen() {
   return (
     <main className="home-menu">
       <Link href="/live" className="home-card" data-kind="live">
-        <CardImage src={art.live} />
-        <span className="home-card-shade" aria-hidden="true" />
+        <span className="home-card-frame">
+          <CardImage src={art.live} />
+          <span className="home-card-shade" aria-hidden="true" />
+        </span>
         <span className="home-card-label">
           Live
           <span className="live-pip" aria-hidden="true" />
         </span>
       </Link>
       <Link href="/tv" className="home-card is-focus" data-kind="tv">
-        <CardImage src={art.tv} />
-        <span className="home-card-shade" aria-hidden="true" />
+        <span className="home-card-frame">
+          <CardImage src={art.tv} />
+          <span className="home-card-shade" aria-hidden="true" />
+        </span>
         <span className="home-card-label">TV Series</span>
       </Link>
       <Link href="/movies" className="home-card" data-kind="movie">
-        <CardImage src={art.movie} />
-        <span className="home-card-shade" aria-hidden="true" />
+        <span className="home-card-frame">
+          <CardImage src={art.movie} />
+          <span className="home-card-shade" aria-hidden="true" />
+        </span>
         <span className="home-card-label">Movies</span>
       </Link>
     </main>
