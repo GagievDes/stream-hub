@@ -300,10 +300,6 @@ a {
   overflow: hidden;
 }
 
-.live-intro {
-  display: none;
-}
-
 .live-caption h2,
 .live-caption p:first-child {
   display: none;
@@ -311,56 +307,6 @@ a {
 
 .live-caption {
   text-align: center;
-}
-
-.live-layout {
-  display: flex;
-  flex-direction: column-reverse;
-  gap: 22px;
-}
-
-.live-guide {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-  background: transparent;
-  border: 0;
-  padding: 0;
-}
-
-.live-guide li,
-.live-category,
-.live-channel-list {
-  display: contents;
-}
-
-.live-category {
-  border: 0;
-}
-
-.live-cat,
-.live-region {
-  display: none;
-}
-
-.live-channel-list {
-  padding: 0;
-}
-
-.live-channel {
-  width: auto;
-  margin: 0;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.78);
-  letter-spacing: 0.01em;
-}
-
-.live-channel[data-active="true"] {
-  background: white;
-  color: #111113;
 }
 
 @media (max-width: 720px) {
