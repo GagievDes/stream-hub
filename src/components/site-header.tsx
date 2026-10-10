@@ -60,6 +60,17 @@ export function SiteHeader() {
             >
               TV Series
             </Link>
+            <Link
+              href="/live"
+              className={cn(
+                "rounded-md px-3 py-2 transition-colors",
+                pathname.startsWith("/live")
+                  ? "text-[var(--accent)]"
+                  : "text-[var(--muted)] hover:text-[var(--fg)]",
+              )}
+            >
+              Live TV
+            </Link>
           </nav>
         ) : null}
       </div>
