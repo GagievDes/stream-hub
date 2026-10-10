@@ -49,17 +49,16 @@ export function LiveTvPage() {
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-5 py-8 sm:py-10">
       <div className="mb-8 max-w-2xl">
-        <p className="mb-2 text-xs font-medium uppercase tracking-[0.2em] text-[var(--accent)]">
-          Live TV
-        </p>
-        <h1 className="font-[family-name:var(--font-display)] text-4xl tracking-wide text-[var(--fg)] sm:text-5xl">
-          {selected.name}
+        <h1 className="library-title flex items-center gap-3">
+          Live
+          <span className="live-pip" aria-hidden="true" />
         </h1>
-        <p className="mt-3 text-[var(--muted)]">{selected.description}</p>
+        <p className="library-lead">{selected.name}</p>
+        <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">{selected.description}</p>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
-        <aside className="flex max-h-[50vh] flex-col overflow-hidden rounded-[28px] border border-[var(--line)] bg-[var(--surface)] lg:h-0 lg:max-h-none lg:min-h-full">
+        <aside className="side-panel flex max-h-[50vh] flex-col overflow-hidden lg:h-0 lg:max-h-none lg:min-h-full">
           <div className="shrink-0 border-b border-[var(--line)] px-3 py-2.5">
             <p className="text-xs font-medium uppercase tracking-[0.16em] text-[var(--muted)]">
               Channels
@@ -106,10 +105,10 @@ export function LiveTvPage() {
                                 data-active={active ? "true" : "false"}
                                 onClick={() => selectChannel(channel)}
                                 className={cn(
-                                  "mb-1 flex w-full items-baseline justify-between gap-3 rounded-md px-2.5 py-2 text-left text-sm transition-colors",
+                                  "mb-1 flex w-full items-baseline justify-between gap-3 rounded-xl px-2.5 py-2 text-left text-sm transition-colors",
                                   active
-                                    ? "bg-[var(--accent-soft)] text-[var(--accent)]"
-                                    : "text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--fg)]",
+                                    ? "bg-white/15 text-white"
+                                    : "text-white/55 hover:bg-white/10 hover:text-white",
                                 )}
                               >
                                 <span className="font-medium">{channel.name}</span>

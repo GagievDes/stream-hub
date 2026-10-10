@@ -31,7 +31,7 @@ export function ContinueWatchingRow({ mediaType }: { mediaType: MediaType }) {
 
   if (items.length === 0) {
     return (
-      <div className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-6 py-16 text-center">
+      <div className="empty-panel px-6 py-16 text-center">
         <p className="text-lg text-[var(--fg)]">Nothing to continue yet</p>
         <p className="mt-2 text-sm text-[var(--muted)]">
           Start watching a {mediaType === "movie" ? "movie" : "series"} and it
@@ -51,7 +51,7 @@ export function ContinueWatchingRow({ mediaType }: { mediaType: MediaType }) {
         >
           <Link
             href={continueHref(item)}
-            className="group media-card block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            className="group media-card block focus-visible:outline-none"
           >
             <div className="relative aspect-[2/3] overflow-hidden bg-[var(--surface-2)]">
               {item.posterPath ? (

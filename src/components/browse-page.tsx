@@ -80,19 +80,12 @@ function BrowsePageInner({ mediaType }: { mediaType: MediaType }) {
 
   return (
     <div className="mx-auto w-full max-w-6xl flex-1 px-5 py-10">
-      <div className="mb-8 max-w-2xl animate-rise">
-        <p className="mb-2 text-xs font-medium uppercase tracking-[0.2em] text-[var(--accent)]">
-          {label}
-        </p>
-        <h1 className="font-[family-name:var(--font-display)] text-4xl tracking-wide text-[var(--fg)] sm:text-5xl">
-          Find by name
-        </h1>
-        <p className="mt-3 text-[var(--muted)]">
-          Search for your favorite {label}
-        </p>
+      <div className="mb-8 max-w-2xl">
+        <h1 className="library-title">{label}</h1>
+        <p className="library-lead">Search for your favorite {label}</p>
       </div>
 
-      <div className="mb-8 max-w-2xl animate-rise-delay">
+      <div className="mb-8 max-w-2xl">
         <SearchBar mediaType={mediaType} initialQuery={query} />
       </div>
 
@@ -105,7 +98,7 @@ function BrowsePageInner({ mediaType }: { mediaType: MediaType }) {
           {Array.from({ length: 10 }).map((_, i) => (
             <div
               key={i}
-              className="aspect-[2/3] animate-pulse rounded-md bg-[var(--surface)]"
+              className="aspect-[2/3] animate-pulse rounded-[18px] bg-[var(--surface)]"
             />
           ))}
         </div>

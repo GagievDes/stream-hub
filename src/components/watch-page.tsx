@@ -128,7 +128,7 @@ export function WatchPage({
 
           <div className="flex flex-col gap-8 md:flex-row md:items-start">
             {poster ? (
-              <div className="relative mx-auto aspect-[2/3] w-40 shrink-0 overflow-hidden shadow-2xl shadow-black/50 md:mx-0 md:w-48">
+              <div className="relative mx-auto aspect-[2/3] w-40 shrink-0 overflow-hidden rounded-[18px] shadow-2xl shadow-black/50 md:mx-0 md:w-48">
                 <Image
                   src={poster}
                   alt={details.title}
@@ -141,13 +141,11 @@ export function WatchPage({
             ) : null}
 
             <div className="flex-1 animate-rise text-center md:text-left">
-              <p className="mb-2 text-xs font-medium uppercase tracking-[0.2em] text-[var(--accent)]">
+              <p className="library-kicker">
                 {typeLabel}
                 {year ? ` · ${year}` : ""}
               </p>
-              <h1 className="font-[family-name:var(--font-display)] text-4xl tracking-wide text-[var(--fg)] sm:text-5xl md:text-6xl">
-                {details.title}
-              </h1>
+              <h1 className="library-title">{details.title}</h1>
               {details.tagline ? (
                 <p className="mt-3 text-lg italic text-[var(--muted)]">
                   {details.tagline}

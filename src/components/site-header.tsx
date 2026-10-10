@@ -1,8 +1,10 @@
 "use client";
 
+import type { MouseEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Search } from "lucide-react";
 import { publicAsset } from "@/lib/utils";
 
 const LINKS = [
@@ -11,13 +13,29 @@ const LINKS = [
   { href: "/live", label: "Live TV" },
 ] as const;
 
+function libraryPath(pathname: string) {
+  if (pathname === "/tv" || pathname.startsWith("/tv/")) return "/tv";
+  return "/movies";
+}
+
 export function SiteHeader() {
   const pathname = usePathname();
+  const atHome = pathname === "/";
+  const searchHref = libraryPath(pathname);
+
+  function onSearchClick(event: MouseEvent<HTMLAnchorElement>) {
+    if (pathname !== searchHref) return;
+    const input = document.getElementById("library-search");
+    if (!(input instanceof HTMLInputElement)) return;
+    event.preventDefault();
+    input.focus();
+    input.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
 
   return (
     <>
       <header className="site-header sticky top-0 z-40">
-        <div className="header-bar mx-auto flex h-16 w-full max-w-6xl items-center px-6">
+        <div className="header-bar flex h-16 w-full items-center px-7 sm:px-10">
           <Link href="/" className="brand flex items-center gap-3 transition-opacity hover:opacity-80">
             <Image
               src={publicAsset("/logo.png")}
@@ -30,19 +48,29 @@ export function SiteHeader() {
             />
             <span className="brand-name">Strain Stream</span>
           </Link>
+          <Link
+            href={searchHref}
+            className="header-search"
+            aria-label="Search"
+            onClick={onSearchClick}
+          >
+            <Search className="size-5" strokeWidth={2.25} />
+          </Link>
         </div>
       </header>
-      <nav className="glass-dock" aria-label="Libraries">
-        {LINKS.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className={pathname.startsWith(link.href) ? "on" : undefined}
-          >
-            {link.label}
-          </Link>
-        ))}
-      </nav>
+      {atHome ? null : (
+        <nav className="glass-dock" aria-label="Libraries">
+          {LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={pathname.startsWith(link.href) ? "on" : undefined}
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
+      )}
     </>
   );
 }

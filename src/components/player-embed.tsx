@@ -269,7 +269,7 @@ export function PlayerEmbed({
     <div className="space-y-4">
       {mediaType === "tv" ? (
         <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[260px_minmax(0,1fr)]">
-          <aside className="flex max-h-[50vh] flex-col overflow-hidden rounded-md border border-[var(--line)] bg-[var(--surface)] lg:h-0 lg:max-h-none lg:min-h-full">
+          <aside className="side-panel flex max-h-[50vh] flex-col overflow-hidden lg:h-0 lg:max-h-none lg:min-h-full">
             <div className="shrink-0 border-b border-[var(--line)] bg-[var(--surface)] px-3 py-2.5">
               <p className="text-xs font-medium uppercase tracking-[0.16em] text-[var(--muted)]">
                 Seasons & episodes
@@ -316,10 +316,10 @@ export function PlayerEmbed({
                                     )
                                   }
                                   className={cn(
-                                    "mb-1 w-full rounded-md px-2.5 py-2 text-left text-sm transition-colors",
+                                    "mb-1 w-full rounded-xl px-2.5 py-2 text-left text-sm transition-colors",
                                     active
-                                      ? "bg-[var(--accent-soft)] text-[var(--accent)]"
-                                      : "text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--fg)]",
+                                      ? "bg-white/15 text-white"
+                                      : "text-white/55 hover:bg-white/10 hover:text-white",
                                   )}
                                 >
                                   <span className="font-medium">
@@ -358,7 +358,7 @@ export function PlayerEmbed({
           <button
             type="button"
             onClick={() => onEpisodeSelect(upcoming.season, upcoming.episode)}
-            className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--fg)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+            className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs text-white transition-colors hover:border-white hover:bg-white/15"
           >
             Next episode
           </button>
@@ -366,7 +366,7 @@ export function PlayerEmbed({
         <button
           type="button"
           onClick={tryNextServer}
-          className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--fg)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+          className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs text-white transition-colors hover:border-white hover:bg-white/15"
         >
           Still not playing? Try another server
         </button>

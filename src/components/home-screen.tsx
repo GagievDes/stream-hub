@@ -2,137 +2,99 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  continueHref,
-  continueSubtitle,
-  readContinueList,
-  type ContinueItem,
-} from "@/lib/continue-watching";
-import { watchHref } from "@/lib/paths";
-import { backdropUrl, getCatalog, getDetails, posterUrl } from "@/lib/tmdb";
+import { readContinueList } from "@/lib/continue-watching";
+import { backdropUrl, getCatalog, getDetails } from "@/lib/tmdb";
+import type { MediaItem } from "@/lib/types";
 
-type Stage = {
-  href: string;
-  kicker: string;
-  title: string;
-  detail: string;
-  overview: string;
-  backdrop: string | null;
-  poster: string | null;
+type Art = {
+  live: string | null;
+  tv: string | null;
+  movie: string | null;
 };
 
-const EMPTY_STAGE: Stage = {
-  href: "/tv",
-  kicker: "Start",
-  title: "TV Series",
-  detail: "Find a show and jump to any episode",
-  overview: "",
-  backdrop: null,
-  poster: null,
-};
+const EMPTY_ART: Art = { live: null, tv: null, movie: null };
 
-function useContinue() {
-  const [latest, setLatest] = useState<ContinueItem | null | undefined>(undefined);
+function firstArt(items: MediaItem[], used: Set<string>) {
+  const found = items.find(
+    (item) => item.backdropPath && !used.has(item.backdropPath),
+  );
+  if (found?.backdropPath) used.add(found.backdropPath);
+  return backdropUrl(found?.backdropPath ?? null, "w780");
+}
 
-  useEffect(() => {
-    const load = () => setLatest(readContinueList()[0] ?? null);
-    load();
-    window.addEventListener("strain-continue-updated", load);
-    window.addEventListener("storage", load);
-    return () => {
-      window.removeEventListener("strain-continue-updated", load);
-      window.removeEventListener("storage", load);
-    };
-  }, []);
+function CardImage({ src }: { src: string | null }) {
+  if (!src) return null;
 
-  return latest;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      className="home-card-art"
+      src={src}
+      alt=""
+      onLoad={(event) => event.currentTarget.classList.add("is-shown")}
+    />
+  );
 }
 
 export function HomeScreen() {
-  const latest = useContinue();
-  const [stage, setStage] = useState<Stage>(EMPTY_STAGE);
+  const [art, setArt] = useState<Art>(EMPTY_ART);
 
   useEffect(() => {
-    if (latest === undefined) return;
     let cancelled = false;
 
-    async function paint() {
-      if (latest) {
-        const poster = posterUrl(latest.posterPath, "w500");
-        if (!cancelled) {
-          setStage({
-            href: continueHref(latest),
-            kicker: "Continue",
-            title: latest.title,
-            detail: continueSubtitle(latest),
-            overview: "",
-            backdrop: null,
-            poster,
-          });
-        }
-        const details = await getDetails(latest.mediaType, latest.id);
-        if (cancelled || !details) return;
-        setStage({
-          href: continueHref(latest),
-          kicker: "Continue",
-          title: latest.title,
-          detail: continueSubtitle(latest),
-          overview: details.overview,
-          backdrop: backdropUrl(details.backdropPath, "w1280"),
-          poster: posterUrl(details.posterPath ?? latest.posterPath, "w500"),
-        });
-        return;
-      }
-
-      const trending = await getCatalog("tv", "trending").catch(() => []);
-      const pick = trending.find((item) => item.backdropPath) ?? trending[0];
+    async function load() {
+      const latest = readContinueList()[0] ?? null;
+      const [tvList, movieList, liveList, details] = await Promise.all([
+        getCatalog("tv", "trending").catch(() => []),
+        getCatalog("movie", "trending").catch(() => []),
+        getCatalog("movie", "now_playing").catch(() => []),
+        latest
+          ? getDetails(latest.mediaType, latest.id).catch(() => null)
+          : Promise.resolve(null),
+      ]);
       if (cancelled) return;
-      if (!pick) {
-        setStage(EMPTY_STAGE);
-        return;
+
+      const used = new Set<string>();
+      const next: Art = {
+        tv: firstArt(tvList, used),
+        movie: firstArt(movieList, used),
+        live: firstArt(liveList, used),
+      };
+      const continued = backdropUrl(details?.backdropPath ?? null, "w780");
+      if (latest && continued) {
+        if (latest.mediaType === "tv") next.tv = continued;
+        if (latest.mediaType === "movie") next.movie = continued;
       }
-      setStage({
-        href: watchHref(pick.mediaType, pick.id),
-        kicker: "Suggested",
-        title: pick.title,
-        detail: "A series people are watching this week",
-        overview: pick.overview,
-        backdrop: backdropUrl(pick.backdropPath, "w1280"),
-        poster: posterUrl(pick.posterPath, "w500"),
-      });
+      setArt(next);
     }
 
-    void paint();
+    void load();
+    window.addEventListener("strain-continue-updated", load);
     return () => {
       cancelled = true;
+      window.removeEventListener("strain-continue-updated", load);
     };
-  }, [latest]);
+  }, []);
 
   return (
-    <main className="home">
-      <Link href={stage.href} className="home-stage">
-        {stage.backdrop ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img className="home-art" src={stage.backdrop} alt="" />
-        ) : stage.poster ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img className="home-art home-art-poster" src={stage.poster} alt="" />
-        ) : null}
-        <span className="home-scrim" aria-hidden="true" />
-        {stage.poster ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img className="home-poster" src={stage.poster} alt="" />
-        ) : null}
-        <span className="home-copy">
-          <span className="home-kicker">
-            <span className="home-dot" aria-hidden="true" />
-            {stage.kicker}
-          </span>
-          <span className="home-title">{stage.title}</span>
-          <span className="home-rule" aria-hidden="true" />
-          <span className="home-detail">{stage.detail}</span>
-          {stage.overview ? <span className="home-overview">{stage.overview}</span> : null}
+    <main className="home-menu">
+      <Link href="/live" className="home-card" data-kind="live">
+        <CardImage src={art.live} />
+        <span className="home-card-shade" aria-hidden="true" />
+        <span className="home-card-label">
+          Live
+          <span className="live-pip" aria-hidden="true" />
         </span>
+      </Link>
+      <Link href="/tv" className="home-card is-focus" data-kind="tv">
+        <CardImage src={art.tv} />
+        <span className="home-card-shade" aria-hidden="true" />
+        <span className="home-card-label">TV Series</span>
+      </Link>
+      <Link href="/movies" className="home-card" data-kind="movie">
+        <CardImage src={art.movie} />
+        <span className="home-card-shade" aria-hidden="true" />
+        <span className="home-card-label">Movies</span>
       </Link>
     </main>
   );

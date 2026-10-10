@@ -83,12 +83,8 @@ export function LivePlayer({ channel }: { channel: LiveChannel }) {
         ) : null}
       </div>
       <div className="live-caption">
-        <p className="text-xs uppercase tracking-[0.16em] text-[var(--accent)]">
-          {channel.region}
-        </p>
-        <h2 className="mt-1 text-2xl font-medium text-[var(--fg)]">{channel.name}</h2>
-        <p className="mt-1 max-w-2xl text-sm text-[var(--muted)]">
-          {channel.description} Sound starts muted. Use the player controls to unmute.
+        <p className="text-sm text-[var(--muted)]">
+          {channel.region}. Sound starts muted. Use the player controls to unmute.
         </p>
       </div>
     </div>

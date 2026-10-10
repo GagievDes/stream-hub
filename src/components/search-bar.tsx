@@ -1,10 +1,8 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useTransition, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import type { MediaType } from "@/lib/types";
 
 export function SearchBar({
@@ -17,7 +15,6 @@ export function SearchBar({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(initialQuery);
-  const [pending, startTransition] = useTransition();
   const basePath = mediaType === "movie" ? "/movies" : "/tv";
   const label = mediaType === "movie" ? "Movies" : "TV Series";
 
@@ -31,26 +28,19 @@ export function SearchBar({
       params.delete("q");
     }
     const qs = params.toString();
-    startTransition(() => {
-      router.push(qs ? `${basePath}?${qs}` : basePath);
-    });
+    router.push(qs ? `${basePath}?${qs}` : basePath);
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex w-full gap-2">
-      <div className="relative flex-1">
-        <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--muted)]" />
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={`Search for your favorite ${label}`}
-          className="pl-10"
-          aria-label={`Search for your favorite ${label}`}
-        />
-      </div>
-      <Button type="submit" disabled={pending}>
-        {pending ? "Searching…" : "Search"}
-      </Button>
+    <form onSubmit={onSubmit} className="library-search" role="search">
+      <Search className="size-4 shrink-0 text-white/55" />
+      <input
+        id="library-search"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder={`Search ${label}`}
+        aria-label={`Search ${label}`}
+      />
     </form>
   );
 }

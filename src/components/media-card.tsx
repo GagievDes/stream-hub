@@ -13,7 +13,7 @@ export function MediaCard({ item }: { item: MediaItem }) {
   return (
     <Link
       href={href}
-      className="group media-card block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+      className="group media-card block focus-visible:outline-none"
     >
       <div className="relative aspect-[2/3] overflow-hidden bg-[var(--surface-2)]">
         {item.posterPath ? (
