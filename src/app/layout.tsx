@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { Bebas_Neue, Figtree } from "next/font/google";
+import { Bebas_Neue, Figtree, Newsreader } from "next/font/google";
 import { NativeShell } from "@/components/native-shell";
 import { SiteHeader } from "@/components/site-header";
+import { ThemeBoot } from "@/components/theme-boot";
 import { publicAsset } from "@/lib/utils";
 import "./globals.css";
 
@@ -15,6 +16,13 @@ const body = Figtree({
   variable: "--font-body",
   subsets: ["latin"],
 });
+
+const serif = Newsreader({
+  subsets: ["latin"],
+  variable: "--font-serif",
+});
+
+const themeScript = `(function(){try{var t=localStorage.getItem("strain-theme");if(t!=="ink"&&t!=="editorial"&&t!=="glass")t="ink";document.documentElement.dataset.theme=t;}catch(e){document.documentElement.dataset.theme="ink";}})();`;
 
 export const metadata: Metadata = {
   title: {
@@ -38,9 +46,13 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${display.variable} ${body.variable} h-full antialiased`}
+      data-theme="ink"
+      suppressHydrationWarning
+      className={`${display.variable} ${body.variable} ${serif.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <ThemeBoot />
         <NativeShell />
         <SiteHeader />
         {children}

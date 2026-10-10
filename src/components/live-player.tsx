@@ -82,7 +82,7 @@ export function LivePlayer({ channel }: { channel: LiveChannel }) {
           </div>
         ) : null}
       </div>
-      <div>
+      <div className="live-caption">
         <p className="text-xs uppercase tracking-[0.16em] text-[var(--accent)]">
           {channel.region}
         </p>
