@@ -8,6 +8,11 @@ import {
   setExpandedSeason,
   upsertContinueItem,
 } from "@/lib/continue-watching";
+import {
+  nextTvSlot,
+  readPlaybackSignal,
+  shouldAdvanceEpisode,
+} from "@/lib/episode-advance";
 import { EMBED_SOURCES, getVidsrcEmbedUrl } from "@/lib/vidsrc";
 import type { MediaType, TvSeason } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -83,7 +88,11 @@ export function PlayerEmbed({
   const [status, setStatus] = useState<"loading" | "ready" | "switching">(
     "loading",
   );
+  const [notice, setNotice] = useState<string | null>(null);
   const loadedRef = useRef(false);
+  const sawPlaybackRef = useRef(false);
+  const loadedAtRef = useRef(0);
+  const advancingRef = useRef(false);
 
   useEffect(() => {
     if (!episodes.some((e) => e.episodeNumber === episode)) {
@@ -150,12 +159,74 @@ export function PlayerEmbed({
   }
 
   function onEpisodeSelect(nextSeason: number, nextEpisode: number) {
+    setNotice(null);
     setSeason(nextSeason);
     setEpisode(nextEpisode);
     setSourceIndex(0);
     setExpandedSeasonState(nextSeason);
     setExpandedSeason(tmdbId, nextSeason);
   }
+
+  const upcoming =
+    mediaType === "tv" ? nextTvSlot(seasonOptions, season, episode) : null;
+
+  useEffect(() => {
+    if (mediaType !== "tv") return;
+    sawPlaybackRef.current = false;
+    loadedAtRef.current = 0;
+    advancingRef.current = false;
+
+    function onMessage(event: MessageEvent) {
+      const signal = readPlaybackSignal(event.data);
+      if (!signal) return;
+      if (signal.kind === "progress") {
+        sawPlaybackRef.current = true;
+        return;
+      }
+      if (advancingRef.current) return;
+      if (
+        !shouldAdvanceEpisode({
+          signal,
+          slot: { season, episode },
+          sawPlayback: sawPlaybackRef.current,
+          loadedForMs: loadedAtRef.current
+            ? Date.now() - loadedAtRef.current
+            : 0,
+        })
+      ) {
+        return;
+      }
+
+      const next = nextTvSlot(seasonOptions, season, episode);
+      advancingRef.current = true;
+      if (!next) {
+        setNotice("That was the last episode.");
+        return;
+      }
+
+      const seasonMeta = seasonOptions.find(
+        (item) => item.seasonNumber === next.season,
+      );
+      const episodeMeta = seasonMeta?.episodes.find(
+        (item) => item.episodeNumber === next.episode,
+      );
+      setNotice(
+        `Up next · ${seasonMeta?.name ?? `Season ${next.season}`} · ${
+          episodeMeta
+            ? `${episodeMeta.episodeNumber}. ${episodeMeta.name}`
+            : `Episode ${next.episode}`
+        }`,
+      );
+      setSeason(next.season);
+      setEpisode(next.episode);
+      setSourceIndex(0);
+      setExpandedSeasonState(next.season);
+      setExpandedSeason(tmdbId, next.season);
+    }
+
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [mediaType, season, episode, seasonOptions, tmdbId]);
 
   function tryNextServer() {
     setSourceIndex((current) => {
@@ -186,6 +257,8 @@ export function PlayerEmbed({
         className="absolute inset-0 h-full w-full border-0"
         onLoad={() => {
           loadedRef.current = true;
+          loadedAtRef.current = Date.now();
+          sawPlaybackRef.current = false;
           setStatus("ready");
         }}
       />
@@ -271,7 +344,25 @@ export function PlayerEmbed({
         player
       )}
 
+      {mediaType === "tv" ? (
+        <p className="text-sm text-[var(--muted)]">
+          {notice ??
+            (upcoming
+              ? "The next episode starts when this one ends. A finished season continues at episode 1."
+              : "This is the last episode.")}
+        </p>
+      ) : null}
+
       <div className="flex flex-wrap items-center justify-end gap-3 text-sm">
+        {upcoming ? (
+          <button
+            type="button"
+            onClick={() => onEpisodeSelect(upcoming.season, upcoming.episode)}
+            className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--fg)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+          >
+            Next episode
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={tryNextServer}
