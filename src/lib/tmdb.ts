@@ -347,7 +347,6 @@ export async function getCast(
     return (data.cast ?? [])
       .slice()
       .sort((a, b) => (a.order ?? 999) - (b.order ?? 999))
-      .slice(0, 16)
       .map((member) => ({
         id: member.id,
         name: member.name,

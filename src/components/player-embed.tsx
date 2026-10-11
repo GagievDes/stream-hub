@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { PlayerControls } from "@/components/player-controls";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { PlayerControls, type PlayerServer } from "@/components/player-controls";
+import { fetchStream, toWebVtt, type StreamSubtitle } from "@/lib/stream-api";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import {
@@ -19,6 +20,22 @@ import type { MediaType, TvSeason } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const LOAD_TIMEOUT_MS = 9000;
+const EMBED_ORIGIN = "https://framextv.xyz";
+
+function applySubtitle(video: HTMLVideoElement, index: number | null) {
+  const elements = [...video.querySelectorAll("track")];
+  for (let i = 0; i < video.textTracks.length; i += 1) {
+    const wanted = elements[i]?.dataset.index;
+    video.textTracks[i].mode = index != null && wanted === String(index) ? "showing" : "disabled";
+  }
+}
+
+function sendSubtitle(frame: HTMLIFrameElement | null, index: number | null) {
+  frame?.contentWindow?.postMessage(
+    { action: "setSubtitle", index: index ?? 1000 },
+    EMBED_ORIGIN,
+  );
+}
 
 type PlayerEmbedProps = {
   mediaType: MediaType;
@@ -90,7 +107,19 @@ export function PlayerEmbed({
     "loading",
   );
   const [notice, setNotice] = useState<string | null>(null);
+  const [server, setServer] = useState<PlayerServer>("auto");
+  const [engine, setEngine] = useState<"native" | "embed">("native");
+  const [streamUrl, setStreamUrl] = useState<string | null>(null);
+  const [subtitles, setSubtitles] = useState<StreamSubtitle[]>([]);
+  const [subtitleIndex, setSubtitleIndex] = useState<number | null>(null);
+  const [qualities, setQualities] = useState([{ index: -1, label: "Auto" }]);
+  const [qualityIndex, setQualityIndex] = useState(-1);
+  const [theater, setTheater] = useState(false);
   const frameRef = useRef<HTMLIFrameElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
+  const hlsRef = useRef<{ currentLevel: number; destroy: () => void } | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const loadedRef = useRef(false);
   const sawPlaybackRef = useRef(false);
   const loadedAtRef = useRef(0);
@@ -148,6 +177,149 @@ export function PlayerEmbed({
 
     return () => window.clearTimeout(timer);
   }, [src]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setEngine("native");
+    setStreamUrl(null);
+    setSubtitles([]);
+    setSubtitleIndex(null);
+    setQualities([{ index: -1, label: "Auto" }]);
+    setQualityIndex(-1);
+
+    void fetchStream({
+      mediaType,
+      tmdbId,
+      season,
+      episode,
+      provider: server,
+    })
+      .then((stream) => {
+        if (cancelled) return;
+        setSubtitles(stream.subtitles);
+        setStreamUrl(stream.sources[0]?.url ?? null);
+        if (!stream.sources[0]?.url) setEngine("embed");
+      })
+      .catch(() => {
+        if (!cancelled) setEngine("embed");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mediaType, tmdbId, season, episode, server]);
+
+  useEffect(() => {
+    if (engine !== "native" || !streamUrl) return;
+    const video = videoRef.current;
+    if (!video) return;
+
+    let cancelled = false;
+    let detach: (() => void) | null = null;
+
+    void (async () => {
+      const { default: Hls } = await import("hls.js");
+      if (cancelled) return;
+      if (!Hls.isSupported()) {
+        setEngine("embed");
+        return;
+      }
+
+      const hls = new Hls();
+      hlsRef.current = hls;
+      detach = () => {
+        hls.destroy();
+        if (hlsRef.current === hls) hlsRef.current = null;
+      };
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        const levels = hls.levels.map((level, index) => ({
+          index,
+          label: level.height ? `${level.height}p` : `Level ${index + 1}`,
+        }));
+        levels.sort((a, b) => {
+          const height = (label: string) => Number(label.replace("p", "")) || 0;
+          return height(b.label) - height(a.label);
+        });
+        setQualities([{ index: -1, label: "Auto" }, ...levels]);
+        hls.currentLevel = -1;
+        void video.play().catch(() => {});
+      });
+      hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (!data.fatal || cancelled) return;
+        setEngine("embed");
+      });
+      hls.loadSource(streamUrl);
+      hls.attachMedia(video);
+    })();
+
+    return () => {
+      cancelled = true;
+      detach?.();
+      video.removeAttribute("src");
+      video.load();
+    };
+  }, [engine, streamUrl]);
+
+  useEffect(() => {
+    hlsRef.current && (hlsRef.current.currentLevel = qualityIndex);
+  }, [qualityIndex]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || engine !== "native") return;
+    let cancelled = false;
+    const urls: string[] = [];
+
+    for (const node of video.querySelectorAll("track")) node.remove();
+
+    void (async () => {
+      for (const track of subtitles) {
+        try {
+          const response = await fetch(track.url);
+          if (!response.ok) continue;
+          const vtt = toWebVtt(await response.text());
+          if (cancelled) return;
+          const url = URL.createObjectURL(new Blob([vtt], { type: "text/vtt" }));
+          urls.push(url);
+          const element = document.createElement("track");
+          element.kind = "subtitles";
+          element.label = track.label;
+          element.src = url;
+          element.dataset.index = String(track.index);
+          video.appendChild(element);
+        } catch {
+          // Skip a track the browser cannot read.
+        }
+      }
+      if (!cancelled) applySubtitle(video, null);
+    })();
+
+    return () => {
+      cancelled = true;
+      for (const url of urls) URL.revokeObjectURL(url);
+    };
+  }, [engine, streamUrl, subtitles]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || engine !== "native") return;
+    applySubtitle(video, subtitleIndex);
+  }, [engine, subtitleIndex, subtitles]);
+
+  useEffect(() => {
+    if (engine !== "embed" || !frameRef.current) return;
+    sendSubtitle(frameRef.current, subtitleIndex);
+  }, [engine, subtitleIndex, src]);
+
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const active = list.querySelector<HTMLElement>("[data-active='true']");
+    if (!active) return;
+    const delta = active.getBoundingClientRect().top - list.getBoundingClientRect().top;
+    const hidden = delta < 0 || delta + active.offsetHeight > list.clientHeight;
+    if (hidden) list.scrollTop += delta - 36;
+  }, [season, episode, expandedSeason]);
 
   function toggleSeason(nextSeason: number) {
     const next = expandedSeason === nextSeason ? -1 : nextSeason;
@@ -234,8 +406,11 @@ export function PlayerEmbed({
   }
 
   const player = (
-    <div className="player-shell relative w-full overflow-hidden bg-black">
-      {(status === "loading" || status === "switching") && (
+    <div
+      ref={shellRef}
+      className={cn("player-shell relative w-full overflow-hidden bg-black", theater && "is-theater")}
+    >
+      {(status === "loading" || status === "switching") && engine === "embed" && (
         <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center p-3">
           <span className="rounded-md bg-black/70 px-3 py-1 text-xs text-[var(--muted)]">
             {status === "switching"
@@ -244,23 +419,66 @@ export function PlayerEmbed({
           </span>
         </div>
       )}
-      <iframe
-        key={src}
-        ref={frameRef}
-        src={src}
-        title={`${title} player`}
-        allowFullScreen
-        allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-        referrerPolicy="no-referrer"
-        className="absolute inset-0 h-full w-full border-0"
-        onLoad={() => {
-          loadedRef.current = true;
-          loadedAtRef.current = Date.now();
-          sawPlaybackRef.current = false;
-          setStatus("ready");
+      {engine === "native" ? (
+        <video
+          ref={videoRef}
+          className="absolute inset-0 h-full w-full"
+          playsInline
+          autoPlay
+          onEnded={() => {
+            if (mediaType !== "tv") return;
+            const next = nextTvSlot(seasonOptions, season, episode);
+            if (!next) {
+              setNotice("That was the last episode.");
+              return;
+            }
+            onEpisodeSelect(next.season, next.episode);
+          }}
+        />
+      ) : (
+        <iframe
+          key={src}
+          ref={frameRef}
+          src={src}
+          title={`${title} player`}
+          allowFullScreen
+          allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+          referrerPolicy="no-referrer"
+          className="pointer-events-none absolute inset-0 h-full w-full border-0"
+          onLoad={() => {
+            loadedRef.current = true;
+            loadedAtRef.current = Date.now();
+            sawPlaybackRef.current = false;
+            setStatus("ready");
+            sendSubtitle(frameRef.current, subtitleIndex);
+          }}
+        />
+      )}
+      <PlayerControls
+        key={`controls-${src}`}
+        frameRef={frameRef}
+        videoRef={videoRef}
+        shellRef={shellRef}
+        useVideo={engine === "native"}
+        subtitles={subtitles}
+        subtitleIndex={subtitleIndex}
+        onSubtitle={setSubtitleIndex}
+        qualities={qualities}
+        qualityIndex={qualityIndex}
+        onQuality={setQualityIndex}
+        server={server}
+        onServer={(next) => {
+          setServer(next);
+          if (next !== "auto") {
+            frameRef.current?.contentWindow?.postMessage(
+              { action: "setProvider", provider: next },
+              EMBED_ORIGIN,
+            );
+          }
         }}
+        theater={theater}
+        onTheater={() => setTheater((value) => !value)}
       />
-      <PlayerControls key={`controls-${src}`} frameRef={frameRef} />
     </div>
   );
 
@@ -274,7 +492,10 @@ export function PlayerEmbed({
                 Seasons & episodes
               </p>
             </div>
-            <div className="scroll-panel min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            <div
+              ref={listRef}
+              className="scroll-panel min-h-0 flex-1 overflow-y-auto overscroll-contain"
+            >
               <div className="divide-y divide-[var(--line)]">
                 {seasonOptions.map((s) => {
                   const open = expandedSeason === s.seasonNumber;
@@ -314,6 +535,7 @@ export function PlayerEmbed({
                                       ep.episodeNumber,
                                     )
                                   }
+                                  data-active={active ? "true" : "false"}
                                   className={cn(
                                     "mb-1 w-full rounded-xl px-2.5 py-2 text-left text-sm transition-colors",
                                     active
