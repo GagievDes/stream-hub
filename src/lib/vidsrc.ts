@@ -10,73 +10,61 @@ export type EmbedSource = {
   ) => string;
 };
 
-/** Multiple mirrors — vidsrc domains rotate; users can switch if one fails. */
+/** framextv.tech redirects here. Auto lets their player pick a provider. */
+const EMBED_ORIGIN = "https://framextv.xyz";
+
 export const EMBED_SOURCES: EmbedSource[] = [
   {
-    id: "vidsrc-io",
-    label: "Vidsrc.io",
+    id: "auto",
+    label: "Auto",
     buildUrl: (mediaType, tmdbId, options) =>
-      buildPathEmbed("https://vidsrc.io/embed", mediaType, tmdbId, options),
+      buildFrameEmbed(mediaType, tmdbId, options),
   },
   {
-    id: "vidsrc-me",
-    label: "Vidsrc.me",
+    id: "super_barbarian",
+    label: "Barbarian",
     buildUrl: (mediaType, tmdbId, options) =>
-      buildPathEmbed("https://vidsrc.me/embed", mediaType, tmdbId, options),
+      buildFrameEmbed(mediaType, tmdbId, options, "super_barbarian"),
   },
   {
-    id: "vidsrc-pm",
-    label: "Vidsrc.pm",
+    id: "miner",
+    label: "Miner",
     buildUrl: (mediaType, tmdbId, options) =>
-      buildPathEmbed("https://vidsrc.pm/embed", mediaType, tmdbId, options),
+      buildFrameEmbed(mediaType, tmdbId, options, "miner"),
   },
   {
-    id: "vidsrc-sh",
-    label: "Vidsrc.sh",
+    id: "headhunter",
+    label: "Headhunter",
     buildUrl: (mediaType, tmdbId, options) =>
-      buildPathEmbed("https://vidsrc.sh/embed", mediaType, tmdbId, options),
-  },
-  {
-    id: "2embed",
-    label: "2Embed",
-    buildUrl: (mediaType, tmdbId, options) => {
-      if (mediaType === "movie") {
-        return `https://www.2embed.cc/embed/${tmdbId}`;
-      }
-      const season = options?.season ?? 1;
-      const episode = options?.episode ?? 1;
-      return `https://www.2embed.cc/embedtv/${tmdbId}&s=${season}&e=${episode}`;
-    },
+      buildFrameEmbed(mediaType, tmdbId, options, "headhunter"),
   },
 ];
 
-function buildPathEmbed(
-  base: string,
+function buildFrameEmbed(
   mediaType: MediaType,
   tmdbId: number,
   options?: { season?: number; episode?: number },
+  server?: string,
 ): string {
-  if (mediaType === "movie") {
-    return `${base}/movie/${tmdbId}`;
-  }
-
-  const { season, episode } = options ?? {};
-  if (season != null && episode != null) {
-    return `${base}/tv/${tmdbId}/${season}/${episode}`;
-  }
-  if (season != null) {
-    return `${base}/tv/${tmdbId}/${season}`;
-  }
-  return `${base}/tv/${tmdbId}`;
+  const path =
+    mediaType === "movie"
+      ? `/embed/${tmdbId}`
+      : `/embed/${tmdbId}/${options?.season ?? 1}/${options?.episode ?? 1}`;
+  const params = new URLSearchParams({
+    autoplay: "1",
+    muted: "0",
+  });
+  if (server) params.set("server", server);
+  return `${EMBED_ORIGIN}${path}?${params.toString()}`;
 }
 
-export function getVidsrcEmbedUrl(
+export function getEmbedUrl(
   mediaType: MediaType,
   tmdbId: number,
   options?: { season?: number; episode?: number },
-  sourceId: string = "vidsrc-io",
+  sourceId: string = "auto",
 ): string {
   const source =
-    EMBED_SOURCES.find((s) => s.id === sourceId) ?? EMBED_SOURCES[0];
+    EMBED_SOURCES.find((item) => item.id === sourceId) ?? EMBED_SOURCES[0];
   return source.buildUrl(mediaType, tmdbId, options);
 }

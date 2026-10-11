@@ -13,7 +13,7 @@ import {
   readPlaybackSignal,
   shouldAdvanceEpisode,
 } from "@/lib/episode-advance";
-import { EMBED_SOURCES, getVidsrcEmbedUrl } from "@/lib/vidsrc";
+import { EMBED_SOURCES, getEmbedUrl } from "@/lib/vidsrc";
 import type { MediaType, TvSeason } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -103,14 +103,9 @@ export function PlayerEmbed({
   const src = useMemo(() => {
     const sourceId = EMBED_SOURCES[sourceIndex]?.id ?? EMBED_SOURCES[0].id;
     if (mediaType === "tv") {
-      return getVidsrcEmbedUrl(
-        mediaType,
-        tmdbId,
-        { season, episode },
-        sourceId,
-      );
+      return getEmbedUrl(mediaType, tmdbId, { season, episode }, sourceId);
     }
-    return getVidsrcEmbedUrl(mediaType, tmdbId, undefined, sourceId);
+    return getEmbedUrl(mediaType, tmdbId, undefined, sourceId);
   }, [mediaType, tmdbId, season, episode, sourceIndex]);
 
   useEffect(() => {
@@ -368,7 +363,7 @@ export function PlayerEmbed({
           onClick={tryNextServer}
           className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs text-white transition-colors hover:border-white hover:bg-white/15"
         >
-          Still not playing? Try another server
+          Still not playing? Try {EMBED_SOURCES[(sourceIndex + 1) % EMBED_SOURCES.length]?.label ?? "another server"}
         </button>
       </div>
     </div>

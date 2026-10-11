@@ -98,8 +98,9 @@ export function readPlaybackSignal(data: unknown): PlaybackSignal | null {
   const rawStatus = asStatus(
     nested.player_status ?? nested.event ?? root.event ?? nested.type,
   );
-  const status =
-    rawStatus === "player_event" || rawStatus === "media_data" ? "" : rawStatus;
+  const status = (
+    rawStatus === "player_event" || rawStatus === "media_data" ? "" : rawStatus
+  ).replace(/^framextv:/, "");
   const season = asNumber(info?.season ?? nested.season ?? root.season);
   const episode = asNumber(info?.episode ?? nested.episode ?? root.episode);
 
