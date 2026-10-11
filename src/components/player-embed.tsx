@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { PlayerControls } from "@/components/player-controls";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import {
@@ -89,6 +90,7 @@ export function PlayerEmbed({
     "loading",
   );
   const [notice, setNotice] = useState<string | null>(null);
+  const frameRef = useRef<HTMLIFrameElement>(null);
   const loadedRef = useRef(false);
   const sawPlaybackRef = useRef(false);
   const loadedAtRef = useRef(0);
@@ -244,6 +246,7 @@ export function PlayerEmbed({
       )}
       <iframe
         key={src}
+        ref={frameRef}
         src={src}
         title={`${title} player`}
         allowFullScreen
@@ -257,6 +260,7 @@ export function PlayerEmbed({
           setStatus("ready");
         }}
       />
+      <PlayerControls key={`controls-${src}`} frameRef={frameRef} />
     </div>
   );
 

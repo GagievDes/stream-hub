@@ -53,6 +53,10 @@ function buildFrameEmbed(
   const params = new URLSearchParams({
     autoplay: "1",
     muted: "0",
+    controls: "0",
+    // Their player adds a third-party ad script only when this page is
+    // embedded on another site. no_ads is the switch that player already checks.
+    no_ads: "1",
   });
   if (server) params.set("server", server);
   return `${EMBED_ORIGIN}${path}?${params.toString()}`;
