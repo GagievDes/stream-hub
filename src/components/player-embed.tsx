@@ -112,7 +112,7 @@ export function PlayerEmbed({
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [subtitles, setSubtitles] = useState<StreamSubtitle[]>([]);
   const [subtitleIndex, setSubtitleIndex] = useState<number | null>(null);
-  const [qualities, setQualities] = useState([{ index: -1, label: "Auto" }]);
+  const [qualities, setQualities] = useState([{ index: -1, label: "Auto", height: 0 }]);
   const [qualityIndex, setQualityIndex] = useState(-1);
   const [theater, setTheater] = useState(false);
   const frameRef = useRef<HTMLIFrameElement>(null);
@@ -185,7 +185,7 @@ export function PlayerEmbed({
     setStreamUrl(null);
     setSubtitles([]);
     setSubtitleIndex(null);
-    setQualities([{ index: -1, label: "Auto" }]);
+    setQualities([{ index: -1, label: "Auto", height: 0 }]);
     setQualityIndex(-1);
 
     void fetchStream({
@@ -203,7 +203,7 @@ export function PlayerEmbed({
         if (!url) return;
         const levels = await fetchQualities(url).catch(() => []);
         if (!cancelled && levels.length > 0) {
-          setQualities([{ index: -1, label: "Auto" }, ...levels]);
+          setQualities([{ index: -1, label: "Auto", height: 0 }, ...levels]);
         }
       })
       .catch(() => {
@@ -253,14 +253,25 @@ export function PlayerEmbed({
           return;
         }
 
-        const hls = new Hls();
+        const height = qualities.find((item) => item.index === qualityIndex)?.height ?? 0;
+        const sortedHeights = qualities
+          .map((item) => item.height)
+          .filter((value) => value > 0)
+          .sort((a, b) => a - b);
+        const startLevel = sortedHeights.indexOf(height);
+        const hls = new Hls({ startLevel: startLevel >= 0 ? startLevel : 0 });
         hlsRef.current = hls;
         detach = () => {
           hls.destroy();
           if (hlsRef.current === hls) hlsRef.current = null;
         };
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          hls.currentLevel = qualityIndex;
+          const match = hls.levels.findIndex((level) => level.height === height);
+          if (match < 0) {
+            if (!cancelled) setQualityIndex(-1);
+            return;
+          }
+          hls.currentLevel = match;
           const resumeAt = playbackTimeRef.current;
           if (resumeAt > 1) video.currentTime = resumeAt;
           frameRef.current?.contentWindow?.postMessage({ action: "pause" }, EMBED_ORIGIN);
