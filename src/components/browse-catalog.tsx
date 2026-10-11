@@ -256,7 +256,7 @@ function CategoryBrowser({
             aria-haspopup="listbox"
             aria-expanded={open}
             onClick={() => setOpen((value) => !value)}
-            className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2.5 text-sm text-white"
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-white/15 px-4 text-sm leading-none text-white"
           >
             {selected?.name ?? "Category"}
             <ChevronDown className={cn("size-4 transition-transform", open && "rotate-180")} />
@@ -288,7 +288,7 @@ function CategoryBrowser({
             </div>
           ) : null}
         </div>
-        <div className="shelf-tabs mb-0" role="tablist" aria-label="Sort category">
+        <div className="shelf-tabs is-inline" role="tablist" aria-label="Sort category">
           {POPULAR_WINDOWS.map((option) => (
             <TabButton
               key={option.key}

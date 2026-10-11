@@ -397,6 +397,19 @@ a {
   margin-bottom: 28px;
 }
 
+.shelf-tabs.is-inline {
+  margin-bottom: 0;
+  align-items: center;
+}
+
+.shelf-tabs.is-inline button {
+  display: inline-flex;
+  height: 40px;
+  align-items: center;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
 .shelf-tabs button {
   flex: none;
   border: 0;
