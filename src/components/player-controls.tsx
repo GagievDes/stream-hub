@@ -1,7 +1,8 @@
 "use client";
 
-import { Captions, Maximize, Minimize, Pause, Play, RectangleHorizontal, Server, Settings, Volume2, VolumeX } from "lucide-react";
+import { Captions, ListVideo, Maximize, Minimize, Pause, Play, RectangleHorizontal, Server, Settings, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import type { TvSeason } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const EMBED_ORIGIN = "https://framextv.xyz";
@@ -51,6 +52,7 @@ export function PlayerControls({
   onServer,
   theater,
   onTheater,
+  episodes,
 }: {
   frameRef: RefObject<HTMLIFrameElement | null>;
   videoRef: RefObject<HTMLVideoElement | null>;
@@ -66,6 +68,12 @@ export function PlayerControls({
   onServer: (id: PlayerServer) => void;
   theater: boolean;
   onTheater: () => void;
+  episodes?: {
+    seasons: TvSeason[];
+    season: number;
+    episode: number;
+    onSelect: (season: number, episode: number) => void;
+  } | null;
 }) {
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -73,8 +81,43 @@ export function PlayerControls({
   const [muted, setMuted] = useState(false);
   const [volume, setVolume] = useState(1);
   const [fullscreen, setFullscreen] = useState(false);
-  const [menu, setMenu] = useState<"subs" | "quality" | "server" | null>(null);
+  const [menu, setMenu] = useState<"subs" | "quality" | "server" | "episodes" | null>(null);
+  const [shown, setShown] = useState(true);
+  const [holding, setHolding] = useState(false);
+  const [activity, setActivity] = useState(0);
+  const [browseSeason, setBrowseSeason] = useState(episodes?.season ?? 1);
   const barRef = useRef<HTMLDivElement>(null);
+  const lastNudge = useRef(0);
+
+  function nudge() {
+    const now = Date.now();
+    if (shown && now - lastNudge.current < 200) return;
+    lastNudge.current = now;
+    setShown(true);
+    setActivity((value) => value + 1);
+  }
+
+  useEffect(() => {
+    if (menu || !playing || holding) {
+      setShown(true);
+      return;
+    }
+    const timer = window.setTimeout(() => setShown(false), 2800);
+    return () => window.clearTimeout(timer);
+  }, [activity, holding, menu, playing]);
+
+  useEffect(() => {
+    if (!holding) return;
+    function release() {
+      setHolding(false);
+    }
+    window.addEventListener("pointerup", release);
+    window.addEventListener("pointercancel", release);
+    return () => {
+      window.removeEventListener("pointerup", release);
+      window.removeEventListener("pointercancel", release);
+    };
+  }, [holding]);
 
   useEffect(() => {
     if (!menu) return;
@@ -85,9 +128,13 @@ export function PlayerControls({
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [menu]);
 
-  function toggleMenu(next: "subs" | "quality" | "server") {
+  function toggleMenu(next: "subs" | "quality" | "server" | "episodes") {
     setMenu((current) => (current === next ? null : next));
   }
+
+  const seasonList =
+    episodes?.seasons.find((item) => item.seasonNumber === browseSeason) ??
+    episodes?.seasons[0];
 
   useEffect(() => {
     const video = videoRef.current;
@@ -164,9 +211,15 @@ export function PlayerControls({
   }
 
   return (
+    <>
+    <div className="absolute inset-x-0 bottom-0 z-20 h-36" onPointerMove={nudge} onPointerDown={nudge} />
     <div
       ref={barRef}
-      className="absolute inset-x-3 bottom-3 z-20 flex items-center gap-2 rounded-full border border-white/15 bg-black/75 px-3 py-2 text-white backdrop-blur"
+      onPointerDown={() => setHolding(true)}
+      className={cn(
+        "absolute inset-x-3 bottom-3 z-30 flex items-center gap-2 rounded-full border border-white/15 bg-black/75 px-3 py-2 text-white backdrop-blur transition duration-200",
+        shown ? "opacity-100" : "pointer-events-none translate-y-2 opacity-0",
+      )}
     >
       <button
         type="button"
@@ -231,6 +284,52 @@ export function PlayerControls({
         }}
         className="hidden h-1 w-16 accent-white sm:block"
       />
+      {episodes ? (
+        <IconMenu
+          label="Episodes"
+          open={menu === "episodes"}
+          onOpen={() => {
+            setBrowseSeason(episodes.season);
+            toggleMenu("episodes");
+          }}
+          icon={<ListVideo className="size-4" />}
+          panelClassName="flex w-72 max-h-[min(24rem,50vh)] flex-col overflow-hidden p-0"
+        >
+          <div className="flex gap-1 overflow-x-auto border-b border-white/10 p-1">
+            {episodes.seasons.map((item) => (
+              <button
+                key={item.seasonNumber}
+                type="button"
+                onClick={() => setBrowseSeason(item.seasonNumber)}
+                className={cn(
+                  "shrink-0 rounded-full px-2.5 py-1 text-xs",
+                  browseSeason === item.seasonNumber ? "bg-white/15 text-white" : "text-white/65 hover:bg-white/10",
+                )}
+              >
+                S{item.seasonNumber}
+              </button>
+            ))}
+          </div>
+          <div className="scroll-panel min-h-0 flex-1 overflow-y-auto p-1">
+            {seasonList?.episodes.map((item) => {
+              const selected =
+                episodes.season === seasonList.seasonNumber && episodes.episode === item.episodeNumber;
+              return (
+                <MenuChoice
+                  key={item.episodeNumber}
+                  selected={selected}
+                  onSelect={() => {
+                    episodes.onSelect(seasonList.seasonNumber, item.episodeNumber);
+                    setMenu(null);
+                  }}
+                >
+                  {item.episodeNumber}. {item.name}
+                </MenuChoice>
+              );
+            })}
+          </div>
+        </IconMenu>
+      ) : null}
       <IconMenu
         label="Subtitles"
         open={menu === "subs"}
@@ -316,6 +415,7 @@ export function PlayerControls({
         {fullscreen ? <Minimize className="size-4" /> : <Maximize className="size-4" />}
       </button>
     </div>
+    </>
   );
 }
 
@@ -325,6 +425,7 @@ function IconMenu({
   active = false,
   onOpen,
   icon,
+  panelClassName,
   children,
 }: {
   label: string;
@@ -332,6 +433,7 @@ function IconMenu({
   active?: boolean;
   onOpen: () => void;
   icon: ReactNode;
+  panelClassName?: string;
   children: ReactNode;
 }) {
   return (
@@ -352,7 +454,10 @@ function IconMenu({
       {open ? (
         <div
           role="menu"
-          className="absolute bottom-full right-0 z-30 mb-2 max-h-48 w-44 overflow-y-auto rounded-xl border border-white/15 bg-black/95 p-1 text-left shadow-lg"
+          className={cn(
+            "absolute bottom-full right-0 z-30 mb-2 max-h-48 w-44 overflow-y-auto rounded-xl border border-white/15 bg-black/95 p-1 text-left shadow-lg",
+            panelClassName,
+          )}
         >
           {children}
         </div>

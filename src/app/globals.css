@@ -104,12 +104,12 @@ a {
 
 .player-shell.is-theater {
   position: fixed;
-  z-index: 60;
-  top: 64px;
-  left: 0;
-  width: 100vw;
-  height: calc(100vh - 64px - 88px);
+  z-index: 80;
+  inset: 0;
+  width: auto;
+  height: auto;
   max-width: none;
+  margin: 0 !important;
   aspect-ratio: auto;
   border: 0;
   border-radius: 0;

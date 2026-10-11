@@ -115,6 +115,22 @@ export function PlayerEmbed({
   const [qualities, setQualities] = useState([{ index: -1, label: "Auto", height: 0 }]);
   const [qualityIndex, setQualityIndex] = useState(-1);
   const [theater, setTheater] = useState(false);
+
+  useEffect(() => {
+    if (!theater) return;
+    const root = document.documentElement;
+    const prevBody = document.body.style.overflow;
+    const prevRoot = root.style.overflow;
+    const prevScroll = root.scrollTop;
+    document.body.style.overflow = "hidden";
+    root.style.overflow = "hidden";
+    root.scrollTop = 0;
+    return () => {
+      document.body.style.overflow = prevBody;
+      root.style.overflow = prevRoot;
+      root.scrollTop = prevScroll;
+    };
+  }, [theater]);
   const frameRef = useRef<HTMLIFrameElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const shellRef = useRef<HTMLDivElement>(null);
@@ -530,6 +546,16 @@ export function PlayerEmbed({
         }}
         theater={theater}
         onTheater={() => setTheater((value) => !value)}
+        episodes={
+          mediaType === "tv"
+            ? {
+                seasons: seasonOptions,
+                season,
+                episode,
+                onSelect: onEpisodeSelect,
+              }
+            : null
+        }
       />
     </div>
   );
