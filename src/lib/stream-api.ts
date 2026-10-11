@@ -61,6 +61,21 @@ export async function fetchStream(input: {
   return { sources, subtitles };
 }
 
+export async function fetchQualities(masterUrl: string): Promise<{ index: number; label: string }[]> {
+  const response = await fetch(masterUrl);
+  if (!response.ok) return [];
+  const text = await response.text();
+  const levels: { index: number; label: string }[] = [];
+  let index = 0;
+  for (const line of text.split("\n")) {
+    const match = line.match(/RESOLUTION=\d+x(\d+)/);
+    if (!match) continue;
+    levels.push({ index, label: `${match[1]}p` });
+    index += 1;
+  }
+  return levels.sort((a, b) => Number(b.label.replace("p", "")) - Number(a.label.replace("p", "")));
+}
+
 export function toWebVtt(text: string) {
   const body = text.replace(/^\uFEFF/, "").replace(/\r+/g, "").trim();
   if (body.startsWith("WEBVTT")) return body;

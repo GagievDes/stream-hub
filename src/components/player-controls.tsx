@@ -1,7 +1,8 @@
 "use client";
 
-import { Captions, Maximize, Minimize, Pause, Play, RectangleHorizontal, Volume2, VolumeX } from "lucide-react";
-import { useEffect, useState, type RefObject } from "react";
+import { Captions, Maximize, Minimize, Pause, Play, RectangleHorizontal, Server, Settings, Volume2, VolumeX } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { cn } from "@/lib/utils";
 
 const EMBED_ORIGIN = "https://framextv.xyz";
 
@@ -72,6 +73,21 @@ export function PlayerControls({
   const [muted, setMuted] = useState(false);
   const [volume, setVolume] = useState(1);
   const [fullscreen, setFullscreen] = useState(false);
+  const [menu, setMenu] = useState<"subs" | "quality" | "server" | null>(null);
+  const barRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menu) return;
+    function onPointerDown(event: PointerEvent) {
+      if (!barRef.current?.contains(event.target as Node)) setMenu(null);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [menu]);
+
+  function toggleMenu(next: "subs" | "quality" | "server") {
+    setMenu((current) => (current === next ? null : next));
+  }
 
   useEffect(() => {
     const video = videoRef.current;
@@ -148,7 +164,10 @@ export function PlayerControls({
   }
 
   return (
-    <div className="absolute inset-x-3 bottom-3 z-20 flex items-center gap-2 rounded-full border border-white/15 bg-black/75 px-3 py-2 text-white backdrop-blur">
+    <div
+      ref={barRef}
+      className="absolute inset-x-3 bottom-3 z-20 flex items-center gap-2 rounded-full border border-white/15 bg-black/75 px-3 py-2 text-white backdrop-blur"
+    >
       <button
         type="button"
         aria-label={playing ? "Pause" : "Play"}
@@ -212,61 +231,73 @@ export function PlayerControls({
         }}
         className="hidden h-1 w-16 accent-white sm:block"
       />
-      <label className="sr-only" htmlFor="player-subs">
-        Subtitles
-      </label>
-      <span className="grid size-4 shrink-0 place-items-center text-white/70" aria-hidden="true">
-        <Captions className="size-4" />
-      </span>
-      <select
-        id="player-subs"
-        aria-label="Subtitles"
-        value={subtitleIndex == null ? "off" : String(subtitleIndex)}
-        onChange={(event) => {
-          const value = event.target.value;
-          onSubtitle(value === "off" ? null : Number(value));
-        }}
-        className="max-w-28 rounded-full border border-white/15 bg-black px-2 py-1 text-xs"
+      <IconMenu
+        label="Subtitles"
+        open={menu === "subs"}
+        active={subtitleIndex != null}
+        onOpen={() => toggleMenu("subs")}
+        icon={<Captions className="size-4" />}
       >
-        <option value="off">Subs off</option>
+        <MenuChoice
+          selected={subtitleIndex == null}
+          onSelect={() => {
+            onSubtitle(null);
+            setMenu(null);
+          }}
+        >
+          Off
+        </MenuChoice>
         {subtitles.map((item) => (
-          <option key={item.index} value={item.index}>
+          <MenuChoice
+            key={item.index}
+            selected={subtitleIndex === item.index}
+            onSelect={() => {
+              onSubtitle(item.index);
+              setMenu(null);
+            }}
+          >
             {item.label}
-          </option>
+          </MenuChoice>
         ))}
-      </select>
-      <label className="sr-only" htmlFor="player-quality">
-        Quality
-      </label>
-      <select
-        id="player-quality"
-        aria-label="Quality"
-        value={String(qualityIndex)}
-        onChange={(event) => onQuality(Number(event.target.value))}
-        className="max-w-24 rounded-full border border-white/15 bg-black px-2 py-1 text-xs"
+      </IconMenu>
+      <IconMenu
+        label="Quality"
+        open={menu === "quality"}
+        onOpen={() => toggleMenu("quality")}
+        icon={<Settings className="size-4" />}
       >
         {qualities.map((item) => (
-          <option key={item.index} value={item.index}>
+          <MenuChoice
+            key={item.index}
+            selected={qualityIndex === item.index}
+            onSelect={() => {
+              onQuality(item.index);
+              setMenu(null);
+            }}
+          >
             {item.label}
-          </option>
+          </MenuChoice>
         ))}
-      </select>
-      <label className="sr-only" htmlFor="player-server">
-        Server
-      </label>
-      <select
-        id="player-server"
-        aria-label="Server"
-        value={server}
-        onChange={(event) => onServer(event.target.value as PlayerServer)}
-        className="max-w-28 rounded-full border border-white/15 bg-black px-2 py-1 text-xs"
+      </IconMenu>
+      <IconMenu
+        label="Server"
+        open={menu === "server"}
+        onOpen={() => toggleMenu("server")}
+        icon={<Server className="size-4" />}
       >
         {SERVERS.map((item) => (
-          <option key={item.id} value={item.id}>
+          <MenuChoice
+            key={item.id}
+            selected={server === item.id}
+            onSelect={() => {
+              onServer(item.id);
+              setMenu(null);
+            }}
+          >
             {item.label}
-          </option>
+          </MenuChoice>
         ))}
-      </select>
+      </IconMenu>
       <button
         type="button"
         aria-label={theater ? "Exit theater" : "Theater"}
@@ -285,5 +316,72 @@ export function PlayerControls({
         {fullscreen ? <Minimize className="size-4" /> : <Maximize className="size-4" />}
       </button>
     </div>
+  );
+}
+
+function IconMenu({
+  label,
+  open,
+  active = false,
+  onOpen,
+  icon,
+  children,
+}: {
+  label: string;
+  open: boolean;
+  active?: boolean;
+  onOpen: () => void;
+  icon: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="relative shrink-0">
+      <button
+        type="button"
+        aria-label={label}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        onClick={onOpen}
+        className={cn(
+          "grid size-8 place-items-center rounded-full hover:bg-white/10",
+          active ? "text-white" : "text-white/80",
+        )}
+      >
+        {icon}
+      </button>
+      {open ? (
+        <div
+          role="menu"
+          className="absolute bottom-full right-0 z-30 mb-2 max-h-48 w-44 overflow-y-auto rounded-xl border border-white/15 bg-black/95 p-1 text-left shadow-lg"
+        >
+          {children}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function MenuChoice({
+  selected,
+  onSelect,
+  children,
+}: {
+  selected: boolean;
+  onSelect: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="menuitemradio"
+      aria-checked={selected}
+      onClick={onSelect}
+      className={cn(
+        "block w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-white/10",
+        selected ? "text-white" : "text-white/65",
+      )}
+    >
+      {children}
+    </button>
   );
 }

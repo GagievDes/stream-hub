@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { PlayerControls, type PlayerServer } from "@/components/player-controls";
-import { fetchStream, toWebVtt, type StreamSubtitle } from "@/lib/stream-api";
+import { fetchQualities, fetchStream, toWebVtt, type StreamSubtitle } from "@/lib/stream-api";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import {
@@ -108,7 +108,7 @@ export function PlayerEmbed({
   );
   const [notice, setNotice] = useState<string | null>(null);
   const [server, setServer] = useState<PlayerServer>("auto");
-  const [engine, setEngine] = useState<"native" | "embed">("native");
+  const [nativeReady, setNativeReady] = useState(false);
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [subtitles, setSubtitles] = useState<StreamSubtitle[]>([]);
   const [subtitleIndex, setSubtitleIndex] = useState<number | null>(null);
@@ -119,6 +119,7 @@ export function PlayerEmbed({
   const videoRef = useRef<HTMLVideoElement>(null);
   const shellRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<{ currentLevel: number; destroy: () => void } | null>(null);
+  const playbackTimeRef = useRef(0);
   const listRef = useRef<HTMLDivElement>(null);
   const loadedRef = useRef(false);
   const sawPlaybackRef = useRef(false);
@@ -180,7 +181,7 @@ export function PlayerEmbed({
 
   useEffect(() => {
     let cancelled = false;
-    setEngine("native");
+    setNativeReady(false);
     setStreamUrl(null);
     setSubtitles([]);
     setSubtitleIndex(null);
@@ -194,14 +195,19 @@ export function PlayerEmbed({
       episode,
       provider: server,
     })
-      .then((stream) => {
+      .then(async (stream) => {
         if (cancelled) return;
         setSubtitles(stream.subtitles);
-        setStreamUrl(stream.sources[0]?.url ?? null);
-        if (!stream.sources[0]?.url) setEngine("embed");
+        const url = stream.sources[0]?.url ?? null;
+        setStreamUrl(url);
+        if (!url) return;
+        const levels = await fetchQualities(url).catch(() => []);
+        if (!cancelled && levels.length > 0) {
+          setQualities([{ index: -1, label: "Auto" }, ...levels]);
+        }
       })
       .catch(() => {
-        if (!cancelled) setEngine("embed");
+        if (!cancelled) setStreamUrl(null);
       });
 
     return () => {
@@ -210,7 +216,28 @@ export function PlayerEmbed({
   }, [mediaType, tmdbId, season, episode, server]);
 
   useEffect(() => {
-    if (engine !== "native" || !streamUrl) return;
+    playbackTimeRef.current = 0;
+  }, [src]);
+
+  useEffect(() => {
+    function onMessage(event: MessageEvent) {
+      if (event.origin !== EMBED_ORIGIN) return;
+      const data = event.data;
+      if (!data || typeof data !== "object" || !("event" in data)) return;
+      if (data.event !== "frameXTV:timeupdate") return;
+      if ("currentTime" in data && typeof data.currentTime === "number") {
+        playbackTimeRef.current = data.currentTime;
+      }
+    }
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+
+  useEffect(() => {
+    if (qualityIndex < 0 || !streamUrl) {
+      setNativeReady(false);
+      return;
+    }
     const video = videoRef.current;
     if (!video) return;
 
@@ -218,98 +245,110 @@ export function PlayerEmbed({
     let detach: (() => void) | null = null;
 
     void (async () => {
-      const { default: Hls } = await import("hls.js");
-      if (cancelled) return;
-      if (!Hls.isSupported()) {
-        setEngine("embed");
-        return;
-      }
+      try {
+        const { default: Hls } = await import("hls.js");
+        if (cancelled) return;
+        if (!Hls.isSupported()) {
+          setQualityIndex(-1);
+          return;
+        }
 
-      const hls = new Hls();
-      hlsRef.current = hls;
-      detach = () => {
-        hls.destroy();
-        if (hlsRef.current === hls) hlsRef.current = null;
-      };
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        const levels = hls.levels.map((level, index) => ({
-          index,
-          label: level.height ? `${level.height}p` : `Level ${index + 1}`,
-        }));
-        levels.sort((a, b) => {
-          const height = (label: string) => Number(label.replace("p", "")) || 0;
-          return height(b.label) - height(a.label);
+        const hls = new Hls();
+        hlsRef.current = hls;
+        detach = () => {
+          hls.destroy();
+          if (hlsRef.current === hls) hlsRef.current = null;
+        };
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          hls.currentLevel = qualityIndex;
+          const resumeAt = playbackTimeRef.current;
+          if (resumeAt > 1) video.currentTime = resumeAt;
+          frameRef.current?.contentWindow?.postMessage({ action: "pause" }, EMBED_ORIGIN);
+          void video.play().then(() => {
+            if (!cancelled) setNativeReady(true);
+          }).catch(() => {
+            if (!cancelled) setQualityIndex(-1);
+          });
         });
-        setQualities([{ index: -1, label: "Auto" }, ...levels]);
-        hls.currentLevel = -1;
-        void video.play().catch(() => {});
-      });
-      hls.on(Hls.Events.ERROR, (_event, data) => {
-        if (!data.fatal || cancelled) return;
-        setEngine("embed");
-      });
-      hls.loadSource(streamUrl);
-      hls.attachMedia(video);
+        hls.on(Hls.Events.ERROR, (_event, data) => {
+          if (!data.fatal || cancelled) return;
+          setNativeReady(false);
+          setQualityIndex(-1);
+        });
+        hls.loadSource(streamUrl);
+        hls.attachMedia(video);
+      } catch {
+        if (!cancelled) setQualityIndex(-1);
+      }
     })();
 
     return () => {
       cancelled = true;
+      const at = video.currentTime;
       detach?.();
+      setNativeReady(false);
+      video.pause();
       video.removeAttribute("src");
       video.load();
+      if (at > 1) {
+        playbackTimeRef.current = at;
+        frameRef.current?.contentWindow?.postMessage(
+          { action: "seek", time: at },
+          EMBED_ORIGIN,
+        );
+        frameRef.current?.contentWindow?.postMessage({ action: "play" }, EMBED_ORIGIN);
+      }
     };
-  }, [engine, streamUrl]);
-
-  useEffect(() => {
-    hlsRef.current && (hlsRef.current.currentLevel = qualityIndex);
-  }, [qualityIndex]);
+  }, [qualityIndex, streamUrl]);
 
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || engine !== "native") return;
+    if (!nativeReady || !video || subtitleIndex == null) {
+      if (!nativeReady) sendSubtitle(frameRef.current, subtitleIndex);
+      if (video) {
+        for (const node of video.querySelectorAll("track")) node.remove();
+        applySubtitle(video, null);
+      }
+      return;
+    }
+
+    const track = subtitles.find((item) => item.index === subtitleIndex);
+    if (!track) return;
+
     let cancelled = false;
     const urls: string[] = [];
-
     for (const node of video.querySelectorAll("track")) node.remove();
 
     void (async () => {
-      for (const track of subtitles) {
-        try {
-          const response = await fetch(track.url);
-          if (!response.ok) continue;
-          const vtt = toWebVtt(await response.text());
-          if (cancelled) return;
-          const url = URL.createObjectURL(new Blob([vtt], { type: "text/vtt" }));
-          urls.push(url);
-          const element = document.createElement("track");
-          element.kind = "subtitles";
-          element.label = track.label;
-          element.src = url;
-          element.dataset.index = String(track.index);
-          video.appendChild(element);
-        } catch {
-          // Skip a track the browser cannot read.
+      try {
+        const response = await fetch(track.url);
+        if (!response.ok || cancelled) return;
+        const vtt = toWebVtt(await response.text());
+        if (cancelled) return;
+        const url = URL.createObjectURL(new Blob([vtt], { type: "text/vtt" }));
+        if (cancelled) {
+          URL.revokeObjectURL(url);
+          return;
         }
+        urls.push(url);
+        const element = document.createElement("track");
+        element.kind = "subtitles";
+        element.label = track.label;
+        element.src = url;
+        element.dataset.index = String(track.index);
+        element.addEventListener("load", () => applySubtitle(video, subtitleIndex));
+        video.appendChild(element);
+        applySubtitle(video, subtitleIndex);
+      } catch {
+        // The embed captions stay available if this file cannot be read.
       }
-      if (!cancelled) applySubtitle(video, null);
     })();
 
     return () => {
       cancelled = true;
       for (const url of urls) URL.revokeObjectURL(url);
     };
-  }, [engine, streamUrl, subtitles]);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || engine !== "native") return;
-    applySubtitle(video, subtitleIndex);
-  }, [engine, subtitleIndex, subtitles]);
-
-  useEffect(() => {
-    if (engine !== "embed" || !frameRef.current) return;
-    sendSubtitle(frameRef.current, subtitleIndex);
-  }, [engine, subtitleIndex, src]);
+  }, [nativeReady, subtitleIndex, subtitles, src]);
 
   useLayoutEffect(() => {
     const list = listRef.current;
@@ -410,7 +449,7 @@ export function PlayerEmbed({
       ref={shellRef}
       className={cn("player-shell relative w-full overflow-hidden bg-black", theater && "is-theater")}
     >
-      {(status === "loading" || status === "switching") && engine === "embed" && (
+      {(status === "loading" || status === "switching") && !nativeReady && (
         <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center p-3">
           <span className="rounded-md bg-black/70 px-3 py-1 text-xs text-[var(--muted)]">
             {status === "switching"
@@ -419,47 +458,49 @@ export function PlayerEmbed({
           </span>
         </div>
       )}
-      {engine === "native" ? (
-        <video
-          ref={videoRef}
-          className="absolute inset-0 h-full w-full"
-          playsInline
-          autoPlay
-          onEnded={() => {
-            if (mediaType !== "tv") return;
-            const next = nextTvSlot(seasonOptions, season, episode);
-            if (!next) {
-              setNotice("That was the last episode.");
-              return;
-            }
-            onEpisodeSelect(next.season, next.episode);
-          }}
-        />
-      ) : (
-        <iframe
-          key={src}
-          ref={frameRef}
-          src={src}
-          title={`${title} player`}
-          allowFullScreen
-          allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-          referrerPolicy="no-referrer"
-          className="pointer-events-none absolute inset-0 h-full w-full border-0"
-          onLoad={() => {
-            loadedRef.current = true;
-            loadedAtRef.current = Date.now();
-            sawPlaybackRef.current = false;
-            setStatus("ready");
-            sendSubtitle(frameRef.current, subtitleIndex);
-          }}
-        />
-      )}
+      <video
+        ref={videoRef}
+        className={cn(
+          "absolute inset-0 h-full w-full bg-black",
+          nativeReady ? "z-[1]" : "invisible pointer-events-none",
+        )}
+        playsInline
+        onEnded={() => {
+          if (!nativeReady || mediaType !== "tv") return;
+          const next = nextTvSlot(seasonOptions, season, episode);
+          if (!next) {
+            setNotice("That was the last episode.");
+            return;
+          }
+          onEpisodeSelect(next.season, next.episode);
+        }}
+      />
+      <iframe
+        key={src}
+        ref={frameRef}
+        src={src}
+        title={`${title} player`}
+        allowFullScreen
+        allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+        referrerPolicy="no-referrer"
+        className={cn(
+          "pointer-events-none absolute inset-0 h-full w-full border-0",
+          nativeReady && "invisible",
+        )}
+        onLoad={() => {
+          loadedRef.current = true;
+          loadedAtRef.current = Date.now();
+          sawPlaybackRef.current = false;
+          setStatus("ready");
+          if (!nativeReady) sendSubtitle(frameRef.current, subtitleIndex);
+        }}
+      />
       <PlayerControls
         key={`controls-${src}`}
         frameRef={frameRef}
         videoRef={videoRef}
         shellRef={shellRef}
-        useVideo={engine === "native"}
+        useVideo={nativeReady}
         subtitles={subtitles}
         subtitleIndex={subtitleIndex}
         onSubtitle={setSubtitleIndex}
