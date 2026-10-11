@@ -88,6 +88,8 @@ export function PlayerControls({
   const [browseSeason, setBrowseSeason] = useState(episodes?.season ?? 1);
   const barRef = useRef<HTMLDivElement>(null);
   const lastNudge = useRef(0);
+  const pausedByUser = useRef(false);
+  const lastMediaTime = useRef(0);
 
   function nudge() {
     const now = Date.now();
@@ -173,11 +175,18 @@ export function PlayerControls({
       if (name === "frameXTV:timeupdate") {
         const current = "currentTime" in data ? data.currentTime : null;
         const length = "duration" in data ? data.duration : null;
-        if (typeof current === "number") setTime(current);
+        if (typeof current === "number") {
+          const advanced = current > lastMediaTime.current + 0.2;
+          lastMediaTime.current = current;
+          setTime(current);
+          if (advanced && !pausedByUser.current) setPlaying(true);
+        }
         if (typeof length === "number" && length > 0) setDuration(length);
-        setPlaying(true);
       }
-      if (name === "frameXTV:ended") setPlaying(false);
+      if (name === "frameXTV:ended") {
+        pausedByUser.current = true;
+        setPlaying(false);
+      }
     }
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
@@ -192,12 +201,19 @@ export function PlayerControls({
   function togglePlay() {
     const video = videoRef.current;
     if (useVideo && video) {
-      if (video.paused) void video.play().catch(() => {});
-      else video.pause();
+      if (video.paused) {
+        pausedByUser.current = false;
+        void video.play().catch(() => {});
+      } else {
+        pausedByUser.current = true;
+        video.pause();
+      }
       return;
     }
-    send(frameRef.current, { action: playing ? "pause" : "play" });
-    setPlaying((value) => !value);
+    const nextPlaying = !playing;
+    pausedByUser.current = !nextPlaying;
+    send(frameRef.current, { action: nextPlaying ? "play" : "pause" });
+    setPlaying(nextPlaying);
   }
 
   async function toggleFullscreen() {
@@ -212,6 +228,22 @@ export function PlayerControls({
 
   return (
     <>
+    <button
+      type="button"
+      aria-label="Toggle playback"
+      onClick={togglePlay}
+      className="absolute inset-0 z-10"
+    />
+    {!playing ? (
+      <button
+        type="button"
+        aria-label="Play video"
+        onClick={togglePlay}
+        className="absolute left-1/2 top-1/2 z-[15] grid size-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-black/55 text-white backdrop-blur"
+      >
+        <Play className="size-7 fill-white" />
+      </button>
+    ) : null}
     <div className="absolute inset-x-0 bottom-0 z-20 h-36" onPointerMove={nudge} onPointerDown={nudge} />
     <div
       ref={barRef}
