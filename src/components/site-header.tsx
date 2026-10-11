@@ -13,23 +13,24 @@ const LINKS = [
   { href: "/live", label: "Live TV" },
 ] as const;
 
-function libraryPath(pathname: string) {
-  if (pathname === "/tv" || pathname.startsWith("/tv/")) return "/tv";
-  return "/movies";
+function isSearchPath(pathname: string) {
+  return pathname === "/search" || pathname === "/search/";
+}
+
+function dockActive(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 export function SiteHeader() {
   const pathname = usePathname();
   const atHome = pathname === "/";
-  const searchHref = libraryPath(pathname);
 
   function onSearchClick(event: MouseEvent<HTMLAnchorElement>) {
-    if (pathname !== searchHref) return;
-    const input = document.getElementById("library-search");
+    if (!isSearchPath(pathname)) return;
+    const input = document.getElementById("global-search");
     if (!(input instanceof HTMLInputElement)) return;
     event.preventDefault();
     input.focus();
-    input.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
   return (
@@ -49,7 +50,7 @@ export function SiteHeader() {
             <span className="brand-name">Strain Stream</span>
           </Link>
           <Link
-            href={searchHref}
+            href="/search"
             className="header-search"
             aria-label="Search"
             onClick={onSearchClick}
@@ -64,7 +65,7 @@ export function SiteHeader() {
             <Link
               key={link.href}
               href={link.href}
-              className={pathname.startsWith(link.href) ? "on" : undefined}
+              className={dockActive(pathname, link.href) ? "on" : undefined}
             >
               {link.label}
             </Link>

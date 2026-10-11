@@ -206,6 +206,28 @@ export async function getCatalog(
   return data.results.map(mapTv);
 }
 
+export async function searchAll(query: string): Promise<MediaItem[]> {
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+
+  if (isUsingMockData()) {
+    return [...mockSearch("movie", trimmed), ...mockSearch("tv", trimmed)];
+  }
+
+  const data = await tmdbFetch<{
+    results: ((TmdbMovieResult | TmdbTvResult) & { media_type?: string })[];
+  }>("/search/multi", {
+    query: trimmed,
+    include_adult: "false",
+  });
+
+  return data.results.flatMap((item) => {
+    if (item.media_type === "movie") return [mapMovie(item as TmdbMovieResult)];
+    if (item.media_type === "tv") return [mapTv(item as TmdbTvResult)];
+    return [];
+  });
+}
+
 export async function searchMedia(
   type: MediaType,
   query: string,

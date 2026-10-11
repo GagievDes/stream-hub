@@ -228,3 +228,16 @@ export function liveChannelById(id: string | null): LiveChannel | null {
   if (!id) return null;
   return LIVE_CHANNELS.find((channel) => channel.id === id) ?? null;
 }
+
+export function searchLiveChannels(query: string): LiveChannel[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  return LIVE_CHANNELS.filter((channel) => {
+    const category =
+      LIVE_CATEGORIES.find((item) => item.id === channel.category)?.label ?? "";
+    return [channel.name, channel.description, channel.region, category]
+      .join(" ")
+      .toLowerCase()
+      .includes(q);
+  });
+}
