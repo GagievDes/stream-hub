@@ -8,6 +8,7 @@ import {
   mockSearch,
   mockTvSeasons,
 } from "./mock-data";
+import type { CatalogKey, PopularWindow } from "./categories";
 import type {
   CastMember,
   MediaDetails,
@@ -160,18 +161,100 @@ export async function getPopular(type: MediaType): Promise<MediaItem[]> {
   return getCatalog(type, "popular");
 }
 
+export type Genre = {
+  id: number;
+  name: string;
+};
+
+function formatDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function dateRange(window: Exclude<PopularWindow, "now">) {
+  const start = new Date();
+  const end = new Date();
+  if (window === "week") {
+    start.setDate(start.getDate() - 6);
+  } else if (window === "month") {
+    start.setDate(1);
+    end.setMonth(end.getMonth() + 1, 0);
+  } else {
+    start.setMonth(0, 1);
+    end.setMonth(11, 31);
+  }
+  return { gte: formatDate(start), lte: formatDate(end) };
+}
+
+async function discoverTitles(
+  type: MediaType,
+  options: { window: PopularWindow; genreId?: number },
+): Promise<MediaItem[]> {
+  if (isUsingMockData()) return mockPopular(type);
+
+  const params: Record<string, string> = {
+    sort_by: "popularity.desc",
+    include_adult: "false",
+    "vote_count.gte": options.window === "now" ? "40" : "1",
+  };
+  if (options.genreId) params.with_genres = String(options.genreId);
+  if (options.window !== "now") {
+    const range = dateRange(options.window);
+    if (type === "movie") {
+      params["primary_release_date.gte"] = range.gte;
+      params["primary_release_date.lte"] = range.lte;
+    } else {
+      params["first_air_date.gte"] = range.gte;
+      params["first_air_date.lte"] = range.lte;
+      params.include_null_first_air_dates = "false";
+    }
+  }
+
+  if (type === "movie") {
+    const data = await tmdbFetch<{ results: TmdbMovieResult[] }>("/discover/movie", params);
+    return data.results.map(mapMovie);
+  }
+  const data = await tmdbFetch<{ results: TmdbTvResult[] }>("/discover/tv", params);
+  return data.results.map(mapTv);
+}
+
+export async function getGenres(type: MediaType): Promise<Genre[]> {
+  if (isUsingMockData()) {
+    return [
+      { id: 28, name: "Action" },
+      { id: 35, name: "Comedy" },
+      { id: 18, name: "Drama" },
+    ];
+  }
+  const data = await tmdbFetch<{ genres: Genre[] }>(
+    type === "movie" ? "/genre/movie/list" : "/genre/tv/list",
+  );
+  return data.genres;
+}
+
+export async function discoverByGenre(
+  type: MediaType,
+  genreId: number,
+  window: PopularWindow,
+): Promise<MediaItem[]> {
+  return discoverTitles(type, { window, genreId });
+}
+
 export async function getCatalog(
   type: MediaType,
-  catalog:
-    | "popular"
-    | "trending"
-    | "top_rated"
-    | "now_playing"
-    | "on_the_air",
+  catalog: CatalogKey,
 ): Promise<MediaItem[]> {
   if (isUsingMockData()) {
     // Demo mode reuses the curated popular list for every shelf.
     return mockPopular(type);
+  }
+
+  if (catalog === "popular_month" || catalog === "popular_year") {
+    return discoverTitles(type, {
+      window: catalog === "popular_month" ? "month" : "year",
+    });
   }
 
   if (catalog === "trending") {
