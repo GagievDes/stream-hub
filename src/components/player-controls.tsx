@@ -193,9 +193,16 @@ export function PlayerControls({
   }, [frameRef, useVideo]);
 
   useEffect(() => {
-    const sync = () => setFullscreen(document.fullscreenElement === shellRef.current);
+    const sync = () => {
+      const doc = document as Document & { webkitFullscreenElement?: Element | null };
+      setFullscreen((document.fullscreenElement || doc.webkitFullscreenElement) === shellRef.current);
+    };
     document.addEventListener("fullscreenchange", sync);
-    return () => document.removeEventListener("fullscreenchange", sync);
+    document.addEventListener("webkitfullscreenchange", sync);
+    return () => {
+      document.removeEventListener("fullscreenchange", sync);
+      document.removeEventListener("webkitfullscreenchange", sync);
+    };
   }, [shellRef]);
 
   function togglePlay() {
@@ -219,11 +226,29 @@ export function PlayerControls({
   async function toggleFullscreen() {
     const shell = shellRef.current;
     if (!shell) return;
-    if (document.fullscreenElement) {
-      await document.exitFullscreen();
+    const doc = document as Document & {
+      webkitFullscreenElement?: Element | null;
+      webkitExitFullscreen?: () => Promise<void> | void;
+    };
+    const active = document.fullscreenElement || doc.webkitFullscreenElement;
+    if (active) {
+      if (document.exitFullscreen) await document.exitFullscreen();
+      else doc.webkitExitFullscreen?.();
       return;
     }
-    await shell.requestFullscreen();
+    const target = shell as HTMLElement & {
+      webkitRequestFullscreen?: () => Promise<void> | void;
+    };
+    if (shell.requestFullscreen) {
+      try {
+        await shell.requestFullscreen();
+        return;
+      } catch {
+        target.webkitRequestFullscreen?.();
+      }
+      return;
+    }
+    target.webkitRequestFullscreen?.();
   }
 
   return (
@@ -239,20 +264,21 @@ export function PlayerControls({
         type="button"
         aria-label="Play video"
         onClick={togglePlay}
-        className="absolute left-1/2 top-1/2 z-[15] grid size-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-black/55 text-white backdrop-blur"
+        className="absolute left-1/2 top-[30%] z-[25] grid size-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-black/55 text-white backdrop-blur touch-manipulation sm:top-1/2"
       >
         <Play className="size-7 fill-white" />
       </button>
     ) : null}
-    <div className="absolute inset-x-0 bottom-0 z-20 h-36" onPointerMove={nudge} onPointerDown={nudge} />
+    <div className="absolute inset-x-0 bottom-0 z-20 h-16 sm:h-36" onPointerMove={nudge} onPointerDown={nudge} />
     <div
       ref={barRef}
       onPointerDown={() => setHolding(true)}
       className={cn(
-        "absolute inset-x-3 bottom-3 z-30 flex items-center gap-2 rounded-full border border-white/15 bg-black/75 px-3 py-2 text-white backdrop-blur transition duration-200",
+        "absolute inset-x-2 bottom-2 z-30 flex flex-col gap-1 rounded-2xl border border-white/15 bg-black/75 px-2 py-1.5 text-white backdrop-blur transition duration-200 touch-manipulation sm:inset-x-3 sm:bottom-3 sm:flex-row sm:items-center sm:gap-2 sm:rounded-full sm:px-3 sm:py-2",
         shown ? "opacity-100" : "pointer-events-none translate-y-2 opacity-0",
       )}
     >
+      <div className="flex min-w-0 items-center gap-2 sm:flex-1">
       <button
         type="button"
         aria-label={playing ? "Pause" : "Play"}
@@ -261,7 +287,7 @@ export function PlayerControls({
       >
         {playing ? <Pause className="size-4" /> : <Play className="size-4 fill-white" />}
       </button>
-      <span className="w-12 shrink-0 text-xs tabular-nums text-white/80">{clock(time)}</span>
+      <span className="w-10 shrink-0 text-[11px] tabular-nums text-white/80 sm:w-12 sm:text-xs">{clock(time)}</span>
       <input
         aria-label="Seek"
         type="range"
@@ -278,9 +304,11 @@ export function PlayerControls({
         }}
         className="h-1 min-w-0 flex-1 accent-white"
       />
-      <span className="w-12 shrink-0 text-right text-xs tabular-nums text-white/80">
+      <span className="w-10 shrink-0 text-right text-[11px] tabular-nums text-white/80 sm:w-12 sm:text-xs">
         {clock(duration)}
       </span>
+      </div>
+      <div className="flex items-center justify-between sm:contents">
       <button
         type="button"
         aria-label={muted ? "Unmute" : "Mute"}
@@ -446,6 +474,7 @@ export function PlayerControls({
       >
         {fullscreen ? <Minimize className="size-4" /> : <Maximize className="size-4" />}
       </button>
+      </div>
     </div>
     </>
   );
