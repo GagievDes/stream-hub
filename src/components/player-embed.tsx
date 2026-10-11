@@ -141,6 +141,59 @@ export function PlayerEmbed({
   const sawPlaybackRef = useRef(false);
   const loadedAtRef = useRef(0);
   const advancingRef = useRef(false);
+  const stickFullscreen = useRef(false);
+  const pinScroll = useRef<number | null>(null);
+
+  function shellIsFullscreen() {
+    const shell = shellRef.current;
+    if (!shell) return false;
+    const doc = document as Document & { webkitFullscreenElement?: Element | null };
+    return document.fullscreenElement === shell || doc.webkitFullscreenElement === shell;
+  }
+
+  function scrollToPinned() {
+    const y = pinScroll.current;
+    if (y == null || Math.abs(window.scrollY - y) <= 1) return;
+    const root = document.documentElement;
+    const previous = root.style.scrollBehavior;
+    root.style.scrollBehavior = "auto";
+    window.scrollTo(0, y);
+    root.style.scrollBehavior = previous;
+  }
+
+  function restoreFullscreen() {
+    const shell = shellRef.current;
+    if (!shell || !stickFullscreen.current || shellIsFullscreen()) return;
+    const target = shell as HTMLElement & { webkitRequestFullscreen?: () => Promise<void> | void };
+    if (!shell.requestFullscreen) {
+      target.webkitRequestFullscreen?.();
+      return;
+    }
+    void shell.requestFullscreen().catch(() => {});
+  }
+
+  function keepView(update: () => void) {
+    pinScroll.current = window.scrollY;
+    if (shellIsFullscreen()) stickFullscreen.current = true;
+    update();
+  }
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") stickFullscreen.current = false;
+    };
+    const onChange = () => {
+      if (shellIsFullscreen()) stickFullscreen.current = true;
+    };
+    window.addEventListener("keydown", onKey, true);
+    document.addEventListener("fullscreenchange", onChange);
+    document.addEventListener("webkitfullscreenchange", onChange);
+    return () => {
+      window.removeEventListener("keydown", onKey, true);
+      document.removeEventListener("fullscreenchange", onChange);
+      document.removeEventListener("webkitfullscreenchange", onChange);
+    };
+  }, []);
 
   useEffect(() => {
     if (!episodes.some((e) => e.episodeNumber === episode)) {
@@ -158,11 +211,52 @@ export function PlayerEmbed({
 
   useEffect(() => {
     if (mediaType !== "tv") return;
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("s", String(season));
-    params.set("e", String(episode));
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    const matches =
+      searchParams.get("s") === String(season) && searchParams.get("e") === String(episode);
+    if (!matches) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("s", String(season));
+      params.set("e", String(episode));
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    }
+    if (pinScroll.current == null) return;
+    const restore = () => scrollToPinned();
+    const frame = requestAnimationFrame(restore);
+    const timer = window.setTimeout(restore, 50);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+    };
   }, [mediaType, season, episode, pathname, router, searchParams]);
+
+  useLayoutEffect(() => {
+    scrollToPinned();
+    restoreFullscreen();
+  }, [src]);
+
+  useEffect(() => {
+    if (!stickFullscreen.current) return;
+    const onChange = () => {
+      if (!stickFullscreen.current || shellIsFullscreen()) return;
+      stickFullscreen.current = false;
+      const shell = shellRef.current;
+      if (!shell?.requestFullscreen) return;
+      void shell.requestFullscreen().then(() => {
+        stickFullscreen.current = true;
+      }).catch(() => {});
+    };
+    document.addEventListener("fullscreenchange", onChange);
+    document.addEventListener("webkitfullscreenchange", onChange);
+    const timer = window.setTimeout(() => {
+      document.removeEventListener("fullscreenchange", onChange);
+      document.removeEventListener("webkitfullscreenchange", onChange);
+    }, 1500);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("fullscreenchange", onChange);
+      document.removeEventListener("webkitfullscreenchange", onChange);
+    };
+  }, [src]);
 
   useEffect(() => {
     upsertContinueItem({
@@ -378,6 +472,7 @@ export function PlayerEmbed({
   }, [nativeReady, subtitleIndex, subtitles, src]);
 
   useLayoutEffect(() => {
+    if (theater || shellIsFullscreen()) return;
     const list = listRef.current;
     if (!list) return;
     const active = list.querySelector<HTMLElement>("[data-active='true']");
@@ -385,7 +480,7 @@ export function PlayerEmbed({
     const delta = active.getBoundingClientRect().top - list.getBoundingClientRect().top;
     const hidden = delta < 0 || delta + active.offsetHeight > list.clientHeight;
     if (hidden) list.scrollTop += delta - 36;
-  }, [season, episode, expandedSeason]);
+  }, [season, episode, expandedSeason, theater]);
 
   function toggleSeason(nextSeason: number) {
     const next = expandedSeason === nextSeason ? -1 : nextSeason;
@@ -394,12 +489,14 @@ export function PlayerEmbed({
   }
 
   function onEpisodeSelect(nextSeason: number, nextEpisode: number) {
-    setNotice(null);
-    setSeason(nextSeason);
-    setEpisode(nextEpisode);
-    setSourceIndex(0);
-    setExpandedSeasonState(nextSeason);
-    setExpandedSeason(tmdbId, nextSeason);
+    keepView(() => {
+      setNotice(null);
+      setSeason(nextSeason);
+      setEpisode(nextEpisode);
+      setSourceIndex(0);
+      setExpandedSeasonState(nextSeason);
+      setExpandedSeason(tmdbId, nextSeason);
+    });
   }
 
   const upcoming =
@@ -445,18 +542,20 @@ export function PlayerEmbed({
       const episodeMeta = seasonMeta?.episodes.find(
         (item) => item.episodeNumber === next.episode,
       );
-      setNotice(
-        `Up next · ${seasonMeta?.name ?? `Season ${next.season}`} · ${
-          episodeMeta
-            ? `${episodeMeta.episodeNumber}. ${episodeMeta.name}`
-            : `Episode ${next.episode}`
-        }`,
-      );
-      setSeason(next.season);
-      setEpisode(next.episode);
-      setSourceIndex(0);
-      setExpandedSeasonState(next.season);
-      setExpandedSeason(tmdbId, next.season);
+      keepView(() => {
+        setNotice(
+          `Up next · ${seasonMeta?.name ?? `Season ${next.season}`} · ${
+            episodeMeta
+              ? `${episodeMeta.episodeNumber}. ${episodeMeta.name}`
+              : `Episode ${next.episode}`
+          }`,
+        );
+        setSeason(next.season);
+        setEpisode(next.episode);
+        setSourceIndex(0);
+        setExpandedSeasonState(next.season);
+        setExpandedSeason(tmdbId, next.season);
+      });
     }
 
     window.addEventListener("message", onMessage);
@@ -503,7 +602,6 @@ export function PlayerEmbed({
         }}
       />
       <iframe
-        key={src}
         ref={frameRef}
         src={src}
         title={`${title} player`}
@@ -523,7 +621,7 @@ export function PlayerEmbed({
         }}
       />
       <PlayerControls
-        key={`controls-${src}`}
+        mediaKey={src}
         frameRef={frameRef}
         videoRef={videoRef}
         shellRef={shellRef}
@@ -546,6 +644,9 @@ export function PlayerEmbed({
         }}
         theater={theater}
         onTheater={() => setTheater((value) => !value)}
+        onFullscreenIntent={(active) => {
+          stickFullscreen.current = active;
+        }}
         episodes={
           mediaType === "tv"
             ? {

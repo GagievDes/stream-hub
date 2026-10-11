@@ -100,6 +100,7 @@ a {
 .player-shell {
   aspect-ratio: 16 / 9;
   border: 1px solid var(--line);
+  overflow-anchor: none;
 }
 
 .player-shell.is-theater {

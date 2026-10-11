@@ -52,6 +52,8 @@ export function PlayerControls({
   onServer,
   theater,
   onTheater,
+  onFullscreenIntent,
+  mediaKey,
   episodes,
 }: {
   frameRef: RefObject<HTMLIFrameElement | null>;
@@ -68,6 +70,8 @@ export function PlayerControls({
   onServer: (id: PlayerServer) => void;
   theater: boolean;
   onTheater: () => void;
+  onFullscreenIntent?: (active: boolean) => void;
+  mediaKey?: string;
   episodes?: {
     seasons: TvSeason[];
     season: number;
@@ -98,6 +102,16 @@ export function PlayerControls({
     setShown(true);
     setActivity((value) => value + 1);
   }
+
+  useEffect(() => {
+    pausedByUser.current = false;
+    lastMediaTime.current = 0;
+    setTime(0);
+    setDuration(0);
+    setPlaying(true);
+    setMenu(null);
+    setShown(true);
+  }, [mediaKey]);
 
   useEffect(() => {
     if (menu || !playing || holding) {
@@ -197,6 +211,7 @@ export function PlayerControls({
       const doc = document as Document & { webkitFullscreenElement?: Element | null };
       setFullscreen((document.fullscreenElement || doc.webkitFullscreenElement) === shellRef.current);
     };
+    sync();
     document.addEventListener("fullscreenchange", sync);
     document.addEventListener("webkitfullscreenchange", sync);
     return () => {
@@ -232,10 +247,12 @@ export function PlayerControls({
     };
     const active = document.fullscreenElement || doc.webkitFullscreenElement;
     if (active) {
+      onFullscreenIntent?.(false);
       if (document.exitFullscreen) await document.exitFullscreen();
       else doc.webkitExitFullscreen?.();
       return;
     }
+    onFullscreenIntent?.(true);
     const target = shell as HTMLElement & {
       webkitRequestFullscreen?: () => Promise<void> | void;
     };
