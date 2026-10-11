@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { ContinueWatchingRow } from "@/components/continue-watching-row";
 import { MediaCard } from "@/components/media-card";
 import { POPULAR_WINDOWS, type CatalogKey, type CatalogShelf, type PopularWindow } from "@/lib/categories";
 import { readContinueList } from "@/lib/continue-watching";
 import { syncCatalogPosters } from "@/lib/poster-cache";
 import { discoverByGenre, getGenres, type Genre } from "@/lib/tmdb";
+import { cn } from "@/lib/utils";
 import type { MediaItem, MediaType } from "@/lib/types";
 
 type BrowseCatalogProps = {
@@ -225,27 +227,77 @@ function CategoryBrowser({
   onGenre: (id: number) => void;
   onWindow: (window: PopularWindow) => void;
 }) {
+  const selected = genres.find((genre) => genre.id === genreId) ?? null;
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(event: PointerEvent) {
+      if (!menuRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
   return (
     <div>
-      <div className="shelf-tabs" role="tablist" aria-label="Categories">
-        {genres.map((genre) => (
-          <TabButton
-            key={genre.id}
-            active={genreId === genre.id}
-            onClick={() => onGenre(genre.id)}
-            label={genre.name}
-          />
-        ))}
-      </div>
-      <div className="shelf-tabs" role="tablist" aria-label="Sort category">
-        {POPULAR_WINDOWS.map((option) => (
-          <TabButton
-            key={option.key}
-            active={window === option.key}
-            onClick={() => onWindow(option.key)}
-            label={option.title}
-          />
-        ))}
+      <div className="mb-6 flex flex-wrap items-center gap-2">
+        <div className="relative" ref={menuRef}>
+          <button
+            type="button"
+            aria-haspopup="listbox"
+            aria-expanded={open}
+            onClick={() => setOpen((value) => !value)}
+            className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2.5 text-sm text-white"
+          >
+            {selected?.name ?? "Category"}
+            <ChevronDown className={cn("size-4 transition-transform", open && "rotate-180")} />
+          </button>
+          {open ? (
+            <div
+              role="listbox"
+              aria-label="Categories"
+              className="absolute left-0 z-30 mt-2 grid max-h-80 w-72 max-w-[calc(100vw-2.5rem)] grid-cols-2 gap-1 overflow-y-auto rounded-2xl border border-white/15 bg-black/95 p-2 shadow-lg"
+            >
+              {genres.map((genre) => (
+                <button
+                  key={genre.id}
+                  type="button"
+                  role="option"
+                  aria-selected={genre.id === genreId}
+                  onClick={() => {
+                    onGenre(genre.id);
+                    setOpen(false);
+                  }}
+                  className={cn(
+                    "rounded-xl px-3 py-2 text-left text-sm",
+                    genre.id === genreId ? "bg-white/15 text-white" : "text-white/70 hover:bg-white/10 hover:text-white",
+                  )}
+                >
+                  {genre.name}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+        <div className="shelf-tabs mb-0" role="tablist" aria-label="Sort category">
+          {POPULAR_WINDOWS.map((option) => (
+            <TabButton
+              key={option.key}
+              active={window === option.key}
+              onClick={() => onWindow(option.key)}
+              label={option.title}
+            />
+          ))}
+        </div>
       </div>
       {error ? (
         <p className="text-sm text-red-200">{error}</p>

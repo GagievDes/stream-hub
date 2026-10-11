@@ -392,10 +392,9 @@ a {
 
 .shelf-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 28px;
-  overflow-x: auto;
-  padding-bottom: 2px;
 }
 
 .shelf-tabs button {
