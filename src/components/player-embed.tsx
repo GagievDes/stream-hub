@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { PlayerControls, type PlayerServer } from "@/components/player-controls";
-import { fetchQualities, fetchStream, toWebVtt, type StreamSubtitle } from "@/lib/stream-api";
+import { fetchQualities, fetchStream, isPlaylistUrl, toWebVtt, type StreamSubtitle } from "@/lib/stream-api";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import {
@@ -112,7 +112,9 @@ export function PlayerEmbed({
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [subtitles, setSubtitles] = useState<StreamSubtitle[]>([]);
   const [subtitleIndex, setSubtitleIndex] = useState<number | null>(null);
-  const [qualities, setQualities] = useState([{ index: -1, label: "Auto", height: 0 }]);
+  const [qualities, setQualities] = useState<
+    { index: number; label: string; height: number; url?: string }[]
+  >([{ index: -1, label: "Auto", height: 0 }]);
   const [qualityIndex, setQualityIndex] = useState(-1);
   const [theater, setTheater] = useState(false);
 
@@ -308,10 +310,26 @@ export function PlayerEmbed({
       .then(async (stream) => {
         if (cancelled) return;
         setSubtitles(stream.subtitles);
-        const url = stream.sources[0]?.url ?? null;
-        setStreamUrl(url);
-        if (!url) return;
-        const levels = await fetchQualities(url).catch(() => []);
+        const files = stream.sources.filter((source) => source.url && !isPlaylistUrl(source.url));
+        if (files.length > 0) {
+          if (!cancelled) {
+            setStreamUrl(null);
+            setQualities([
+              { index: -1, label: "Auto", height: 0 },
+              ...files.map((source, index) => ({
+                index,
+                label: source.quality || `Source ${index + 1}`,
+                height: Number(source.quality.match(/(\d{3,4})/)?.[1] ?? 0),
+                url: source.url,
+              })),
+            ]);
+          }
+          return;
+        }
+        const playlist = stream.sources.find((source) => source.url && isPlaylistUrl(source.url))?.url ?? null;
+        setStreamUrl(playlist);
+        if (!playlist) return;
+        const levels = await fetchQualities(playlist).catch(() => []);
         if (!cancelled && levels.length > 0) {
           setQualities([{ index: -1, label: "Auto", height: 0 }, ...levels]);
         }
@@ -344,7 +362,9 @@ export function PlayerEmbed({
   }, []);
 
   useEffect(() => {
-    if (qualityIndex < 0 || !streamUrl) {
+    const selected = qualities.find((item) => item.index === qualityIndex);
+    const mediaUrl = selected?.url || streamUrl;
+    if (qualityIndex < 0 || !mediaUrl) {
       setNativeReady(false);
       return;
     }
@@ -353,6 +373,42 @@ export function PlayerEmbed({
 
     let cancelled = false;
     let detach: (() => void) | null = null;
+
+    const handoff = () => {
+      const resumeAt = playbackTimeRef.current;
+      if (resumeAt > 1) video.currentTime = resumeAt;
+      frameRef.current?.contentWindow?.postMessage({ action: "pause" }, EMBED_ORIGIN);
+      void video.play().then(() => {
+        if (!cancelled) setNativeReady(true);
+      }).catch(() => {
+        if (!cancelled) setQualityIndex(-1);
+      });
+    };
+
+    if (!isPlaylistUrl(mediaUrl)) {
+      const onReady = () => handoff();
+      const onError = () => {
+        if (!cancelled) setQualityIndex(-1);
+      };
+      video.addEventListener("loadeddata", onReady);
+      video.addEventListener("error", onError);
+      video.src = mediaUrl;
+      return () => {
+        cancelled = true;
+        video.removeEventListener("loadeddata", onReady);
+        video.removeEventListener("error", onError);
+        const at = video.currentTime;
+        setNativeReady(false);
+        video.pause();
+        video.removeAttribute("src");
+        video.load();
+        if (at > 1) {
+          playbackTimeRef.current = at;
+          frameRef.current?.contentWindow?.postMessage({ action: "seek", time: at }, EMBED_ORIGIN);
+          frameRef.current?.contentWindow?.postMessage({ action: "play" }, EMBED_ORIGIN);
+        }
+      };
+    }
 
     void (async () => {
       try {
@@ -363,7 +419,7 @@ export function PlayerEmbed({
           return;
         }
 
-        const height = qualities.find((item) => item.index === qualityIndex)?.height ?? 0;
+        const height = selected?.height ?? 0;
         const sortedHeights = qualities
           .map((item) => item.height)
           .filter((value) => value > 0)
@@ -382,21 +438,14 @@ export function PlayerEmbed({
             return;
           }
           hls.currentLevel = match;
-          const resumeAt = playbackTimeRef.current;
-          if (resumeAt > 1) video.currentTime = resumeAt;
-          frameRef.current?.contentWindow?.postMessage({ action: "pause" }, EMBED_ORIGIN);
-          void video.play().then(() => {
-            if (!cancelled) setNativeReady(true);
-          }).catch(() => {
-            if (!cancelled) setQualityIndex(-1);
-          });
+          handoff();
         });
         hls.on(Hls.Events.ERROR, (_event, data) => {
           if (!data.fatal || cancelled) return;
           setNativeReady(false);
           setQualityIndex(-1);
         });
-        hls.loadSource(streamUrl);
+        hls.loadSource(mediaUrl);
         hls.attachMedia(video);
       } catch {
         if (!cancelled) setQualityIndex(-1);
@@ -420,7 +469,7 @@ export function PlayerEmbed({
         frameRef.current?.contentWindow?.postMessage({ action: "play" }, EMBED_ORIGIN);
       }
     };
-  }, [qualityIndex, streamUrl]);
+  }, [qualityIndex, streamUrl, qualities]);
 
   useEffect(() => {
     const video = videoRef.current;

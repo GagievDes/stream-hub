@@ -61,12 +61,34 @@ export async function fetchStream(input: {
   return { sources, subtitles };
 }
 
+export function isPlaylistUrl(url: string) {
+  let path = url;
+  try {
+    path = decodeURIComponent(url);
+  } catch {
+    path = url;
+  }
+  path = path.split("?")[0].toLowerCase();
+  return path.endsWith(".m3u8") || path.endsWith(".m3u");
+}
+
 export async function fetchQualities(
   masterUrl: string,
 ): Promise<{ index: number; label: string; height: number }[]> {
-  const response = await fetch(masterUrl);
-  if (!response.ok) return [];
+  if (!isPlaylistUrl(masterUrl)) return [];
+  const response = await fetch(masterUrl, { headers: { Range: "bytes=0-65535" } });
+  const type = (response.headers.get("content-type") || "").toLowerCase();
+  const length = Number(response.headers.get("content-length") || 0);
+  if (!response.ok && response.status !== 206) {
+    await response.body?.cancel();
+    return [];
+  }
+  if (type.startsWith("video/") || (length > 200_000 && !type.includes("mpegurl") && !type.includes("m3u"))) {
+    await response.body?.cancel();
+    return [];
+  }
   const text = await response.text();
+  if (!text.includes("#EXTM3U")) return [];
   const levels: { index: number; label: string; height: number }[] = [];
   let index = 0;
   for (const line of text.split("\n")) {

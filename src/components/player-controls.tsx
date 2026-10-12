@@ -190,12 +190,14 @@ export function PlayerControls({
         const current = "currentTime" in data ? data.currentTime : null;
         const length = "duration" in data ? data.duration : null;
         if (typeof current === "number") {
-          const advanced = current > lastMediaTime.current + 0.2;
+          const previous = lastMediaTime.current;
           lastMediaTime.current = current;
-          setTime(current);
-          if (advanced && !pausedByUser.current) setPlaying(true);
+          if (Math.floor(current) !== Math.floor(previous)) setTime(current);
+          if (current > previous + 0.2 && !pausedByUser.current) setPlaying(true);
         }
-        if (typeof length === "number" && length > 0) setDuration(length);
+        if (typeof length === "number" && length > 0) {
+          setDuration((value) => (Math.abs(value - length) < 0.5 ? value : length));
+        }
       }
       if (name === "frameXTV:ended") {
         pausedByUser.current = true;
@@ -291,7 +293,7 @@ export function PlayerControls({
       ref={barRef}
       onPointerDown={() => setHolding(true)}
       className={cn(
-        "absolute inset-x-2 bottom-2 z-30 flex flex-col gap-1 rounded-2xl border border-white/15 bg-black/75 px-2 py-1.5 text-white backdrop-blur transition duration-200 touch-manipulation sm:inset-x-3 sm:bottom-3 sm:flex-row sm:items-center sm:gap-2 sm:rounded-full sm:px-3 sm:py-2",
+        "absolute inset-x-2 bottom-2 z-30 flex flex-col gap-1 rounded-2xl border border-white/15 bg-black/80 px-2 py-1.5 text-white transition duration-200 touch-manipulation sm:inset-x-3 sm:bottom-3 sm:flex-row sm:items-center sm:gap-2 sm:rounded-full sm:px-3 sm:py-2",
         shown ? "opacity-100" : "pointer-events-none translate-y-2 opacity-0",
       )}
     >
