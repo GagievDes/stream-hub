@@ -116,6 +116,8 @@ export function PlayerEmbed({
     { index: number; label: string; height: number; url?: string }[]
   >([{ index: -1, label: "Auto", height: 0 }]);
   const [qualityIndex, setQualityIndex] = useState(-1);
+  const [wantCatalog, setWantCatalog] = useState(false);
+  const [catalog, setCatalog] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [theater, setTheater] = useState(false);
 
   useEffect(() => {
@@ -293,6 +295,7 @@ export function PlayerEmbed({
 
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
     setNativeReady(false);
     setStreamUrl(null);
     setSubtitles([]);
@@ -300,48 +303,63 @@ export function PlayerEmbed({
     setQualities([{ index: -1, label: "Auto", height: 0 }]);
     setQualityIndex(-1);
 
+    if (!wantCatalog) {
+      setCatalog("idle");
+      return () => {
+        cancelled = true;
+        controller.abort();
+      };
+    }
+
+    setCatalog("loading");
     void fetchStream({
       mediaType,
       tmdbId,
       season,
       episode,
       provider: server,
+      signal: controller.signal,
     })
       .then(async (stream) => {
         if (cancelled) return;
         setSubtitles(stream.subtitles);
         const files = stream.sources.filter((source) => source.url && !isPlaylistUrl(source.url));
         if (files.length > 0) {
-          if (!cancelled) {
-            setStreamUrl(null);
-            setQualities([
-              { index: -1, label: "Auto", height: 0 },
-              ...files.map((source, index) => ({
-                index,
-                label: source.quality || `Source ${index + 1}`,
-                height: Number(source.quality.match(/(\d{3,4})/)?.[1] ?? 0),
-                url: source.url,
-              })),
-            ]);
-          }
+          setStreamUrl(null);
+          setQualities([
+            { index: -1, label: "Auto", height: 0 },
+            ...files.map((source, index) => ({
+              index,
+              label: source.quality || `Source ${index + 1}`,
+              height: Number(source.quality.match(/(\d{3,4})/)?.[1] ?? 0),
+              url: source.url,
+            })),
+          ]);
+          setCatalog("ready");
           return;
         }
         const playlist = stream.sources.find((source) => source.url && isPlaylistUrl(source.url))?.url ?? null;
         setStreamUrl(playlist);
-        if (!playlist) return;
-        const levels = await fetchQualities(playlist).catch(() => []);
-        if (!cancelled && levels.length > 0) {
-          setQualities([{ index: -1, label: "Auto", height: 0 }, ...levels]);
+        if (playlist) {
+          const levels = await fetchQualities(playlist).catch(() => []);
+          if (cancelled) return;
+          if (levels.length > 0) {
+            setQualities([{ index: -1, label: "Auto", height: 0 }, ...levels]);
+          }
         }
+        if (!cancelled) setCatalog("ready");
       })
-      .catch(() => {
-        if (!cancelled) setStreamUrl(null);
+      .catch((error: unknown) => {
+        if (cancelled || (error instanceof DOMException && error.name === "AbortError")) return;
+        setStreamUrl(null);
+        setCatalog("error");
       });
 
     return () => {
       cancelled = true;
+      controller.abort();
     };
-  }, [mediaType, tmdbId, season, episode, server]);
+  }, [wantCatalog, mediaType, tmdbId, season, episode, server]);
 
   useEffect(() => {
     playbackTimeRef.current = 0;
@@ -474,7 +492,6 @@ export function PlayerEmbed({
   useEffect(() => {
     const video = videoRef.current;
     if (!nativeReady || !video || subtitleIndex == null) {
-      if (!nativeReady) sendSubtitle(frameRef.current, subtitleIndex);
       if (video) {
         for (const node of video.querySelectorAll("track")) node.remove();
         applySubtitle(video, null);
@@ -666,7 +683,7 @@ export function PlayerEmbed({
           loadedAtRef.current = Date.now();
           sawPlaybackRef.current = false;
           setStatus("ready");
-          if (!nativeReady) sendSubtitle(frameRef.current, subtitleIndex);
+          if (subtitleIndex != null) sendSubtitle(frameRef.current, subtitleIndex);
         }}
       />
       <PlayerControls
@@ -677,7 +694,12 @@ export function PlayerEmbed({
         useVideo={nativeReady}
         subtitles={subtitles}
         subtitleIndex={subtitleIndex}
-        onSubtitle={setSubtitleIndex}
+        onSubtitle={(index) => {
+          setSubtitleIndex(index);
+          if (!nativeReady) sendSubtitle(frameRef.current, index);
+        }}
+        onInspect={() => setWantCatalog(true)}
+        catalog={catalog}
         qualities={qualities}
         qualityIndex={qualityIndex}
         onQuality={setQualityIndex}

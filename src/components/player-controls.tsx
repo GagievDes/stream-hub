@@ -53,6 +53,8 @@ export function PlayerControls({
   theater,
   onTheater,
   onFullscreenIntent,
+  onInspect,
+  catalog,
   mediaKey,
   episodes,
 }: {
@@ -71,6 +73,8 @@ export function PlayerControls({
   theater: boolean;
   onTheater: () => void;
   onFullscreenIntent?: (active: boolean) => void;
+  onInspect?: () => void;
+  catalog?: "idle" | "loading" | "ready" | "error";
   mediaKey?: string;
   episodes?: {
     seasons: TvSeason[];
@@ -413,7 +417,10 @@ export function PlayerControls({
         label="Subtitles"
         open={menu === "subs"}
         active={subtitleIndex != null}
-        onOpen={() => toggleMenu("subs")}
+        onOpen={() => {
+          onInspect?.();
+          toggleMenu("subs");
+        }}
         icon={<Captions className="size-4" />}
       >
         <MenuChoice
@@ -425,6 +432,11 @@ export function PlayerControls({
         >
           Off
         </MenuChoice>
+        {catalog === "error" ? (
+          <p className="px-3 py-2 text-xs text-white/55">Couldn't load subtitles</p>
+        ) : catalog !== "ready" ? (
+          <p className="px-3 py-2 text-xs text-white/55">Loading…</p>
+        ) : null}
         {subtitles.map((item) => (
           <MenuChoice
             key={item.index}
@@ -441,9 +453,17 @@ export function PlayerControls({
       <IconMenu
         label="Quality"
         open={menu === "quality"}
-        onOpen={() => toggleMenu("quality")}
+        onOpen={() => {
+          onInspect?.();
+          toggleMenu("quality");
+        }}
         icon={<Settings className="size-4" />}
       >
+        {catalog === "error" ? (
+          <p className="px-3 py-2 text-xs text-white/55">Couldn't load qualities</p>
+        ) : catalog !== "ready" ? (
+          <p className="px-3 py-2 text-xs text-white/55">Loading…</p>
+        ) : null}
         {qualities.map((item) => (
           <MenuChoice
             key={item.index}

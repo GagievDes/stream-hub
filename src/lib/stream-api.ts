@@ -22,6 +22,7 @@ export async function fetchStream(input: {
   season?: number;
   episode?: number;
   provider?: string;
+  signal?: AbortSignal;
 }): Promise<{ sources: StreamSource[]; subtitles: StreamSubtitle[] }> {
   const url = new URL(STREAM_API);
   url.searchParams.set("type", input.mediaType === "tv" ? "tv" : "movie");
@@ -34,7 +35,7 @@ export async function fetchStream(input: {
     url.searchParams.set("provider", input.provider);
   }
 
-  const response = await fetch(url);
+  const response = await fetch(url, { signal: input.signal });
   if (!response.ok) {
     throw new Error(`Stream request failed (${response.status})`);
   }
