@@ -207,6 +207,11 @@ a {
   border-color: rgba(255, 255, 255, 0.1);
 }
 
+.player-shell iframe,
+.player-shell video {
+  transform: translateZ(0);
+}
+
 .glass-dock {
   position: fixed;
   z-index: 50;
@@ -221,6 +226,11 @@ a {
   border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.32);
   backdrop-filter: blur(22px);
+}
+
+body:has(.player-shell) .glass-dock {
+  backdrop-filter: none;
+  background: rgba(16, 16, 18, 0.94);
 }
 
 .glass-dock a {

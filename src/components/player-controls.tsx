@@ -83,8 +83,6 @@ export function PlayerControls({
     onSelect: (season: number, episode: number) => void;
   } | null;
 }) {
-  const [time, setTime] = useState(0);
-  const [duration, setDuration] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [muted, setMuted] = useState(false);
   const [volume, setVolume] = useState(1);
@@ -95,9 +93,28 @@ export function PlayerControls({
   const [activity, setActivity] = useState(0);
   const [browseSeason, setBrowseSeason] = useState(episodes?.season ?? 1);
   const barRef = useRef<HTMLDivElement>(null);
+  const timeNode = useRef<HTMLSpanElement>(null);
+  const durationNode = useRef<HTMLSpanElement>(null);
+  const seekNode = useRef<HTMLInputElement>(null);
+  const durationValue = useRef(1);
+  const seeking = useRef(false);
   const lastNudge = useRef(0);
   const pausedByUser = useRef(false);
   const lastMediaTime = useRef(0);
+
+  function paintClock(current: number, length?: number) {
+    const shown = Math.max(0, current);
+    if (timeNode.current) timeNode.current.textContent = clock(shown);
+    if (typeof length === "number" && length > 0 && Math.abs(length - durationValue.current) >= 0.5) {
+      durationValue.current = length;
+      if (durationNode.current) durationNode.current.textContent = clock(length);
+      if (seekNode.current) seekNode.current.max = String(length);
+    }
+    if (seekNode.current && !seeking.current) {
+      const max = Number(seekNode.current.max) || 1;
+      seekNode.current.value = String(Math.min(shown, max));
+    }
+  }
 
   function nudge() {
     const now = Date.now();
@@ -110,8 +127,14 @@ export function PlayerControls({
   useEffect(() => {
     pausedByUser.current = false;
     lastMediaTime.current = 0;
-    setTime(0);
-    setDuration(0);
+    durationValue.current = 1;
+    seeking.current = false;
+    if (timeNode.current) timeNode.current.textContent = "0:00";
+    if (durationNode.current) durationNode.current.textContent = "0:00";
+    if (seekNode.current) {
+      seekNode.current.value = "0";
+      seekNode.current.max = "1";
+    }
     setPlaying(true);
     setMenu(null);
     setShown(true);
@@ -129,6 +152,7 @@ export function PlayerControls({
   useEffect(() => {
     if (!holding) return;
     function release() {
+      seeking.current = false;
       setHolding(false);
     }
     window.addEventListener("pointerup", release);
@@ -161,11 +185,12 @@ export function PlayerControls({
     if (!useVideo || !video) return;
 
     const sync = () => {
-      setTime(video.currentTime || 0);
-      if (Number.isFinite(video.duration) && video.duration > 0) setDuration(video.duration);
-      setPlaying(!video.paused);
-      setMuted(video.muted || video.volume === 0);
-      setVolume(video.volume);
+      paintClock(video.currentTime || 0, video.duration);
+      const nextPlaying = !video.paused;
+      setPlaying((value) => (value === nextPlaying ? value : nextPlaying));
+      const nextMuted = video.muted || video.volume === 0;
+      setMuted((value) => (value === nextMuted ? value : nextMuted));
+      setVolume((value) => (value === video.volume ? value : video.volume));
     };
     sync();
     video.addEventListener("timeupdate", sync);
@@ -196,11 +221,11 @@ export function PlayerControls({
         if (typeof current === "number") {
           const previous = lastMediaTime.current;
           lastMediaTime.current = current;
-          if (Math.floor(current) !== Math.floor(previous)) setTime(current);
-          if (current > previous + 0.2 && !pausedByUser.current) setPlaying(true);
-        }
-        if (typeof length === "number" && length > 0) {
-          setDuration((value) => (Math.abs(value - length) < 0.5 ? value : length));
+          const lengthChanged = typeof length === "number" && Math.abs(length - durationValue.current) >= 0.5;
+          if (Math.floor(current) !== Math.floor(previous) || lengthChanged) {
+            paintClock(current, typeof length === "number" ? length : undefined);
+          }
+          if (current > previous + 0.2 && !pausedByUser.current) setPlaying((value) => (value ? value : true));
         }
       }
       if (name === "frameXTV:ended") {
@@ -310,25 +335,35 @@ export function PlayerControls({
       >
         {playing ? <Pause className="size-4" /> : <Play className="size-4 fill-white" />}
       </button>
-      <span className="w-10 shrink-0 text-[11px] tabular-nums text-white/80 sm:w-12 sm:text-xs">{clock(time)}</span>
+      <span ref={timeNode} className="w-10 shrink-0 text-[11px] tabular-nums text-white/80 sm:w-12 sm:text-xs">0:00</span>
       <input
+        ref={seekNode}
         aria-label="Seek"
         type="range"
         min={0}
-        max={Math.max(duration, 1)}
+        max={1}
         step={1}
-        value={Math.min(time, Math.max(duration, 1))}
+        defaultValue={0}
+        onPointerDown={() => {
+          seeking.current = true;
+        }}
+        onPointerUp={() => {
+          seeking.current = false;
+        }}
+        onPointerCancel={() => {
+          seeking.current = false;
+        }}
         onChange={(event) => {
           const next = Number(event.target.value);
-          setTime(next);
+          if (timeNode.current) timeNode.current.textContent = clock(next);
           const video = videoRef.current;
           if (useVideo && video) video.currentTime = next;
           else send(frameRef.current, { action: "seek", time: next });
         }}
         className="h-1 min-w-0 flex-1 accent-white"
       />
-      <span className="w-10 shrink-0 text-right text-[11px] tabular-nums text-white/80 sm:w-12 sm:text-xs">
-        {clock(duration)}
+      <span ref={durationNode} className="w-10 shrink-0 text-right text-[11px] tabular-nums text-white/80 sm:w-12 sm:text-xs">
+        0:00
       </span>
       </div>
       <div className="flex items-center justify-between sm:contents">
