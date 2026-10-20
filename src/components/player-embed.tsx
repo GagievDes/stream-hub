@@ -15,7 +15,7 @@ import {
   readPlaybackSignal,
   shouldAdvanceEpisode,
 } from "@/lib/episode-advance";
-import { EMBED_ORIGIN, EMBED_SOURCES, getEmbedUrl, isEmbedOrigin } from "@/lib/vidsrc";
+import { EMBED_SOURCES, getEmbedUrl, noteEmbedOrigin, postToEmbed } from "@/lib/vidsrc";
 import type { MediaType, TvSeason } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -30,10 +30,7 @@ function applySubtitle(video: HTMLVideoElement, index: number | null) {
 }
 
 function sendSubtitle(frame: HTMLIFrameElement | null, index: number | null) {
-  frame?.contentWindow?.postMessage(
-    { action: "setSubtitle", index: index ?? 1000 },
-    EMBED_ORIGIN,
-  );
+  postToEmbed(frame, { action: "setSubtitle", index: index ?? 1000 });
 }
 
 type PlayerEmbedProps = {
@@ -366,7 +363,8 @@ export function PlayerEmbed({
 
   useEffect(() => {
     function onMessage(event: MessageEvent) {
-      if (!isEmbedOrigin(event.origin)) return;
+      if (event.source !== frameRef.current?.contentWindow) return;
+      noteEmbedOrigin(event.origin, frameRef.current);
       const data = event.data;
       if (!data || typeof data !== "object" || !("event" in data)) return;
       if (data.event !== "frameXTV:timeupdate") return;
@@ -394,7 +392,7 @@ export function PlayerEmbed({
     const handoff = () => {
       const resumeAt = playbackTimeRef.current;
       if (resumeAt > 1) video.currentTime = resumeAt;
-      frameRef.current?.contentWindow?.postMessage({ action: "pause" }, EMBED_ORIGIN);
+      postToEmbed(frameRef.current, { action: "pause" });
       void video.play().then(() => {
         if (!cancelled) setNativeReady(true);
       }).catch(() => {
@@ -421,8 +419,8 @@ export function PlayerEmbed({
         video.load();
         if (at > 1) {
           playbackTimeRef.current = at;
-          frameRef.current?.contentWindow?.postMessage({ action: "seek", time: at }, EMBED_ORIGIN);
-          frameRef.current?.contentWindow?.postMessage({ action: "play" }, EMBED_ORIGIN);
+          postToEmbed(frameRef.current, { action: "seek", time: at });
+          postToEmbed(frameRef.current, { action: "play" });
         }
       };
     }
@@ -479,11 +477,8 @@ export function PlayerEmbed({
       video.load();
       if (at > 1) {
         playbackTimeRef.current = at;
-        frameRef.current?.contentWindow?.postMessage(
-          { action: "seek", time: at },
-          EMBED_ORIGIN,
-        );
-        frameRef.current?.contentWindow?.postMessage({ action: "play" }, EMBED_ORIGIN);
+        postToEmbed(frameRef.current, { action: "seek", time: at });
+        postToEmbed(frameRef.current, { action: "play" });
       }
     };
   }, [qualityIndex, streamUrl, qualities]);
@@ -706,10 +701,7 @@ export function PlayerEmbed({
         onServer={(next) => {
           setServer(next);
           if (next !== "auto") {
-            frameRef.current?.contentWindow?.postMessage(
-              { action: "setProvider", provider: next },
-              EMBED_ORIGIN,
-            );
+            postToEmbed(frameRef.current, { action: "setProvider", provider: next });
           }
         }}
         theater={theater}

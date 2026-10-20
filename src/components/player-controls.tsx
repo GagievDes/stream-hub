@@ -3,7 +3,7 @@
 import { Captions, ListVideo, Maximize, Minimize, Pause, Play, RectangleHorizontal, Server, Settings, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import type { TvSeason } from "@/lib/types";
-import { EMBED_ORIGIN, isEmbedOrigin } from "@/lib/vidsrc";
+import { noteEmbedOrigin, postToEmbed } from "@/lib/vidsrc";
 import { cn } from "@/lib/utils";
 
 const SERVERS = [
@@ -25,7 +25,7 @@ export type PlayerOption = {
 };
 
 function send(frame: HTMLIFrameElement | null, message: Record<string, unknown>) {
-  frame?.contentWindow?.postMessage(message, EMBED_ORIGIN);
+  postToEmbed(frame, message);
 }
 
 function clock(seconds: number) {
@@ -209,8 +209,8 @@ export function PlayerControls({
   useEffect(() => {
     if (useVideo) return;
     function onMessage(event: MessageEvent) {
-      if (!isEmbedOrigin(event.origin)) return;
       if (event.source !== frameRef.current?.contentWindow) return;
+      noteEmbedOrigin(event.origin, frameRef.current);
       const data = event.data;
       if (!data || typeof data !== "object") return;
       const name = "event" in data && typeof data.event === "string" ? data.event : "";

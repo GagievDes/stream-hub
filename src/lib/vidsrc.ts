@@ -10,13 +10,36 @@ export type EmbedSource = {
   ) => string;
 };
 
-/** framextv.xyz now redirects here. Messages have to use this origin. */
+/** Current embed host. The iframe follows redirects, and commands use whatever origin talks back. */
 export const EMBED_ORIGIN = "https://framextv.cc";
 
-const EMBED_ORIGINS = new Set([EMBED_ORIGIN, "https://framextv.xyz"]);
+type EmbedMessage = Record<string, unknown>;
+type EmbedTarget = {
+  contentWindow?: { postMessage: (message: EmbedMessage, origin: string) => void } | null;
+} | null;
 
-export function isEmbedOrigin(origin: string) {
-  return EMBED_ORIGINS.has(origin);
+let activeOrigin = EMBED_ORIGIN;
+let lastCommand: EmbedMessage | null = null;
+
+export function currentEmbedOrigin() {
+  return activeOrigin;
+}
+
+export function postToEmbed(frame: EmbedTarget, message: EmbedMessage) {
+  const target = frame?.contentWindow;
+  if (!target) return;
+  const action = message.action;
+  if (action === "play" || action === "pause") lastCommand = message;
+  target.postMessage(message, activeOrigin);
+}
+
+/** Remember the origin of a message that came from the player frame, and repeat a play or pause that was sent to the previous one. */
+export function noteEmbedOrigin(origin: string, frame?: EmbedTarget) {
+  if (!origin.startsWith("https://") || origin === activeOrigin) return;
+  activeOrigin = origin;
+  const command = lastCommand;
+  lastCommand = null;
+  if (command) frame?.contentWindow?.postMessage(command, activeOrigin);
 }
 
 export const EMBED_SOURCES: EmbedSource[] = [
