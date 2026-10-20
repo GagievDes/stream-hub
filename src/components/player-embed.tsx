@@ -15,12 +15,11 @@ import {
   readPlaybackSignal,
   shouldAdvanceEpisode,
 } from "@/lib/episode-advance";
-import { EMBED_SOURCES, getEmbedUrl } from "@/lib/vidsrc";
+import { EMBED_ORIGIN, EMBED_SOURCES, getEmbedUrl, isEmbedOrigin } from "@/lib/vidsrc";
 import type { MediaType, TvSeason } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const LOAD_TIMEOUT_MS = 9000;
-const EMBED_ORIGIN = "https://framextv.xyz";
 
 function applySubtitle(video: HTMLVideoElement, index: number | null) {
   const elements = [...video.querySelectorAll("track")];
@@ -367,7 +366,7 @@ export function PlayerEmbed({
 
   useEffect(() => {
     function onMessage(event: MessageEvent) {
-      if (event.origin !== EMBED_ORIGIN) return;
+      if (!isEmbedOrigin(event.origin)) return;
       const data = event.data;
       if (!data || typeof data !== "object" || !("event" in data)) return;
       if (data.event !== "frameXTV:timeupdate") return;

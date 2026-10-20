@@ -3,9 +3,8 @@
 import { Captions, ListVideo, Maximize, Minimize, Pause, Play, RectangleHorizontal, Server, Settings, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import type { TvSeason } from "@/lib/types";
+import { EMBED_ORIGIN, isEmbedOrigin } from "@/lib/vidsrc";
 import { cn } from "@/lib/utils";
-
-const EMBED_ORIGIN = "https://framextv.xyz";
 
 const SERVERS = [
   { id: "auto", label: "Auto" },
@@ -210,11 +209,14 @@ export function PlayerControls({
   useEffect(() => {
     if (useVideo) return;
     function onMessage(event: MessageEvent) {
-      if (event.origin !== EMBED_ORIGIN) return;
+      if (!isEmbedOrigin(event.origin)) return;
       if (event.source !== frameRef.current?.contentWindow) return;
       const data = event.data;
       if (!data || typeof data !== "object") return;
       const name = "event" in data && typeof data.event === "string" ? data.event : "";
+      if (name === "frameXTV:ready" && lastMediaTime.current < 0.2 && !pausedByUser.current) {
+        setPlaying(false);
+      }
       if (name === "frameXTV:timeupdate") {
         const current = "currentTime" in data ? data.currentTime : null;
         const length = "duration" in data ? data.duration : null;

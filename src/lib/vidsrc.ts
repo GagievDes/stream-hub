@@ -10,8 +10,14 @@ export type EmbedSource = {
   ) => string;
 };
 
-/** framextv.tech redirects here. Auto lets their player pick a provider. */
-const EMBED_ORIGIN = "https://framextv.xyz";
+/** framextv.xyz now redirects here. Messages have to use this origin. */
+export const EMBED_ORIGIN = "https://framextv.cc";
+
+const EMBED_ORIGINS = new Set([EMBED_ORIGIN, "https://framextv.xyz"]);
+
+export function isEmbedOrigin(origin: string) {
+  return EMBED_ORIGINS.has(origin);
+}
 
 export const EMBED_SOURCES: EmbedSource[] = [
   {
