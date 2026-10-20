@@ -15,7 +15,7 @@ import {
   readPlaybackSignal,
   shouldAdvanceEpisode,
 } from "@/lib/episode-advance";
-import { EMBED_SOURCES, getEmbedUrl, noteEmbedOrigin, postToEmbed } from "@/lib/vidsrc";
+import { EMBED_SOURCES, getEmbedUrl, postToEmbed } from "@/lib/vidsrc";
 import type { MediaType, TvSeason } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -364,7 +364,6 @@ export function PlayerEmbed({
   useEffect(() => {
     function onMessage(event: MessageEvent) {
       if (event.source !== frameRef.current?.contentWindow) return;
-      noteEmbedOrigin(event.origin, frameRef.current);
       const data = event.data;
       if (!data || typeof data !== "object" || !("event" in data)) return;
       if (data.event !== "frameXTV:timeupdate") return;

@@ -3,7 +3,7 @@
 import { Captions, ListVideo, Maximize, Minimize, Pause, Play, RectangleHorizontal, Server, Settings, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import type { TvSeason } from "@/lib/types";
-import { noteEmbedOrigin, postToEmbed } from "@/lib/vidsrc";
+import { notePlaybackStarted, playNeedsRecovery, postToEmbed, recoverEmbedOrigin } from "@/lib/vidsrc";
 import { cn } from "@/lib/utils";
 
 const SERVERS = [
@@ -210,7 +210,6 @@ export function PlayerControls({
     if (useVideo) return;
     function onMessage(event: MessageEvent) {
       if (event.source !== frameRef.current?.contentWindow) return;
-      noteEmbedOrigin(event.origin, frameRef.current);
       const data = event.data;
       if (!data || typeof data !== "object") return;
       const name = "event" in data && typeof data.event === "string" ? data.event : "";
@@ -227,9 +226,11 @@ export function PlayerControls({
           if (Math.floor(current) !== Math.floor(previous) || lengthChanged) {
             paintClock(current, typeof length === "number" ? length : undefined);
           }
+          if (current > previous) notePlaybackStarted();
           if (current > previous + 0.2 && !pausedByUser.current) setPlaying((value) => (value ? value : true));
         }
       }
+      if (playNeedsRecovery()) recoverEmbedOrigin(event.origin, frameRef.current);
       if (name === "frameXTV:ended") {
         pausedByUser.current = true;
         setPlaying(false);

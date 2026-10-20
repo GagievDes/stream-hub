@@ -10,7 +10,7 @@ export type EmbedSource = {
   ) => string;
 };
 
-/** Current embed host. The iframe follows redirects, and commands use whatever origin talks back. */
+/** Current embed host. A new host is tried only after a play command does not start playback. */
 export const EMBED_ORIGIN = "https://framextv.cc";
 
 type EmbedMessage = Record<string, unknown>;
@@ -19,27 +19,35 @@ type EmbedTarget = {
 } | null;
 
 let activeOrigin = EMBED_ORIGIN;
-let lastCommand: EmbedMessage | null = null;
+let pendingPlay: EmbedMessage | null = null;
 
 export function currentEmbedOrigin() {
   return activeOrigin;
 }
 
+export function playNeedsRecovery() {
+  return pendingPlay !== null;
+}
+
+export function notePlaybackStarted() {
+  pendingPlay = null;
+}
+
 export function postToEmbed(frame: EmbedTarget, message: EmbedMessage) {
   const target = frame?.contentWindow;
   if (!target) return;
-  const action = message.action;
-  if (action === "play" || action === "pause") lastCommand = message;
+  if (message.action === "play") pendingPlay = message;
+  if (message.action === "pause") pendingPlay = null;
   target.postMessage(message, activeOrigin);
 }
 
-/** Remember the origin of a message that came from the player frame, and repeat a play or pause that was sent to the previous one. */
-export function noteEmbedOrigin(origin: string, frame?: EmbedTarget) {
-  if (!origin.startsWith("https://") || origin === activeOrigin) return;
+/** Switch hosts only while a play command is still waiting, then send that play once. */
+export function recoverEmbedOrigin(origin: string, frame?: EmbedTarget) {
+  if (!pendingPlay || !origin.startsWith("https://") || origin === activeOrigin) return;
   activeOrigin = origin;
-  const command = lastCommand;
-  lastCommand = null;
-  if (command) frame?.contentWindow?.postMessage(command, activeOrigin);
+  const command = pendingPlay;
+  pendingPlay = null;
+  frame?.contentWindow?.postMessage(command, activeOrigin);
 }
 
 export const EMBED_SOURCES: EmbedSource[] = [
