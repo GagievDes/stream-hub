@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { PlayerControls, type PlayerServer } from "@/components/player-controls";
-import { fetchQualities, fetchStream, isPlaylistUrl, toWebVtt, type StreamSubtitle } from "@/lib/stream-api";
+import { fetchQualities, fetchStream, isPlaylistUrl, qualityChoices, toWebVtt, type StreamSubtitle } from "@/lib/stream-api";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import {
@@ -319,18 +319,10 @@ export function PlayerEmbed({
       .then(async (stream) => {
         if (cancelled) return;
         setSubtitles(stream.subtitles);
-        const files = stream.sources.filter((source) => source.url && !isPlaylistUrl(source.url));
-        if (files.length > 0) {
+        const choices = qualityChoices(stream.sources);
+        if (choices.length > 0) {
           setStreamUrl(null);
-          setQualities([
-            { index: -1, label: "Auto", height: 0 },
-            ...files.map((source, index) => ({
-              index,
-              label: source.quality || `Source ${index + 1}`,
-              height: Number(source.quality.match(/(\d{3,4})/)?.[1] ?? 0),
-              url: source.url,
-            })),
-          ]);
+          setQualities([{ index: -1, label: "Auto", height: 0 }, ...choices]);
           setCatalog("ready");
           return;
         }
@@ -447,11 +439,11 @@ export function PlayerEmbed({
         };
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           const match = hls.levels.findIndex((level) => level.height === height);
-          if (match < 0) {
+          if (match >= 0) hls.currentLevel = match;
+          else if (hls.levels.length > 1 && height > 0) {
             if (!cancelled) setQualityIndex(-1);
             return;
           }
-          hls.currentLevel = match;
           handoff();
         });
         hls.on(Hls.Events.ERROR, (_event, data) => {
