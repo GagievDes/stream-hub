@@ -65,7 +65,7 @@ export function SearchPage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-5 py-10">
+    <main className="search-page mx-auto w-full max-w-6xl flex-1 px-5 py-10">
       <div className="mb-8 max-w-2xl">
         <h1 className="library-title">Search</h1>
         <p className="library-lead">Movies, series, and live channels</p>

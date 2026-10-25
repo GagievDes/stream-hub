@@ -28,7 +28,7 @@ export function CastRow({
   if (cast.length === 0) return null;
 
   return (
-    <section className={cn("mt-8", className)}>
+    <section className={cn("cast-row mt-8", className)}>
       <h2 className="mb-3 font-[family-name:var(--font-display)] text-xl tracking-wide text-[var(--fg)]">
         Cast
       </h2>
@@ -56,7 +56,7 @@ export function CastRow({
 function CastThumb({ member }: { member: CastMember }) {
   const photo = profileUrl(member.profilePath);
   return (
-    <Link href={personHref(member.id)} className="group w-16 shrink-0">
+    <Link href={personHref(member.id)} className="cast-thumb group w-16 shrink-0">
       <div className="relative aspect-[2/3] overflow-hidden rounded-[10px] bg-[var(--surface-2)]">
         {photo ? (
           <Image

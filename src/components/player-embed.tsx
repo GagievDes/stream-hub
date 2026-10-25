@@ -725,7 +725,7 @@ export function PlayerEmbed({
   return (
     <div className="space-y-4">
       {mediaType === "tv" ? (
-        <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[260px_minmax(0,1fr)]">
+        <div className="episode-layout grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[260px_minmax(0,1fr)]">
           <aside className="side-panel flex max-h-[50vh] flex-col overflow-hidden lg:h-0 lg:max-h-none lg:min-h-full">
             <div className="shrink-0 border-b border-[var(--line)] bg-[var(--surface)] px-3 py-2.5">
               <p className="text-xs font-medium uppercase tracking-[0.16em] text-[var(--muted)]">
@@ -814,7 +814,7 @@ export function PlayerEmbed({
         </p>
       ) : null}
 
-      <div className="flex flex-wrap items-center justify-end gap-3 text-sm">
+      <div className="player-actions flex flex-wrap items-center justify-end gap-3 text-sm">
         {upcoming ? (
           <button
             type="button"

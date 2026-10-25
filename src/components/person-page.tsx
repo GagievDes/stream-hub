@@ -51,7 +51,7 @@ export function PersonPage({ id }: { id: number }) {
     return (
       <div className="mx-auto w-full max-w-6xl flex-1 px-5 py-16 text-center">
         <p className="text-lg text-[var(--fg)]">Cast member not found</p>
-        <Link href="/" className="mt-4 inline-flex text-sm text-[var(--accent)]">
+        <Link href="/" className="back-link mt-4 inline-flex text-sm text-[var(--accent)]">
           Back home
         </Link>
       </div>
@@ -71,17 +71,17 @@ export function PersonPage({ id }: { id: number }) {
   const photo = profileUrl(person.profilePath, "h632");
 
   return (
-    <div className="mx-auto w-full max-w-6xl flex-1 px-5 py-10">
+    <div className="person-page mx-auto w-full max-w-6xl flex-1 px-5 py-10">
       <Link
         href="/"
-        className="mb-8 inline-flex items-center gap-2 text-sm text-[var(--muted)] transition-colors hover:text-[var(--fg)]"
+        className="back-link mb-8 inline-flex items-center gap-2 text-sm text-[var(--muted)] transition-colors hover:text-[var(--fg)]"
       >
         <ArrowLeft className="size-4" />
         Back
       </Link>
 
       <div className="flex flex-col gap-8 md:flex-row md:items-start">
-        <div className="relative mx-auto aspect-[2/3] w-44 shrink-0 overflow-hidden bg-[var(--surface-2)] md:mx-0 md:w-56">
+        <div className="person-photo relative mx-auto aspect-[2/3] w-44 shrink-0 overflow-hidden bg-[var(--surface-2)] md:mx-0 md:w-56">
           {photo ? (
             <Image
               src={photo}

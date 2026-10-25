@@ -325,7 +325,7 @@ export function PlayerControls({
       ref={barRef}
       onPointerDown={() => setHolding(true)}
       className={cn(
-        "absolute inset-x-2 bottom-2 z-30 flex flex-col gap-1 rounded-2xl border border-white/15 bg-black/80 px-2 py-1.5 text-white transition duration-200 touch-manipulation sm:inset-x-3 sm:bottom-3 sm:flex-row sm:items-center sm:gap-2 sm:rounded-full sm:px-3 sm:py-2",
+        "player-chrome absolute inset-x-2 bottom-2 z-30 flex flex-col gap-1 rounded-2xl border border-white/15 bg-black/80 px-2 py-1.5 text-white transition duration-200 touch-manipulation sm:inset-x-3 sm:bottom-3 sm:flex-row sm:items-center sm:gap-2 sm:rounded-full sm:px-3 sm:py-2",
         shown ? "opacity-100" : "pointer-events-none translate-y-2 opacity-0",
       )}
     >

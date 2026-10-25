@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { TvHome } from "@/components/tv-home";
+import { useTvMode } from "@/components/use-tv-mode";
 import { readContinueList } from "@/lib/continue-watching";
 import { backdropUrl, getCatalog, getDetails } from "@/lib/tmdb";
 import type { MediaItem } from "@/lib/types";
@@ -37,9 +39,11 @@ function CardImage({ src }: { src: string | null }) {
 }
 
 export function HomeScreen() {
+  const tv = useTvMode();
   const [art, setArt] = useState<Art>(EMPTY_ART);
 
   useEffect(() => {
+    if (tv) return;
     let cancelled = false;
 
     async function load() {
@@ -74,34 +78,39 @@ export function HomeScreen() {
       cancelled = true;
       window.removeEventListener("strain-continue-updated", load);
     };
-  }, []);
+  }, [tv]);
+
+  if (tv) return <TvHome />;
 
   return (
-    <main className="home-menu">
-      <Link href="/live" className="home-card" data-kind="live">
-        <span className="home-card-frame">
-          <CardImage src={art.live} />
-          <span className="home-card-shade" aria-hidden="true" />
-        </span>
-        <span className="home-card-label">
-          Live
-          <span className="live-pip" aria-hidden="true" />
-        </span>
-      </Link>
-      <Link href="/tv" className="home-card is-focus" data-kind="tv">
-        <span className="home-card-frame">
-          <CardImage src={art.tv} />
-          <span className="home-card-shade" aria-hidden="true" />
-        </span>
-        <span className="home-card-label">TV Series</span>
-      </Link>
-      <Link href="/movies" className="home-card" data-kind="movie">
-        <span className="home-card-frame">
-          <CardImage src={art.movie} />
-          <span className="home-card-shade" aria-hidden="true" />
-        </span>
-        <span className="home-card-label">Movies</span>
-      </Link>
-    </main>
+    <>
+      <div className="tv-boot-placeholder" aria-hidden="true" />
+      <main className="home-menu">
+        <Link href="/live" className="home-card" data-kind="live">
+          <span className="home-card-frame">
+            <CardImage src={art.live} />
+            <span className="home-card-shade" aria-hidden="true" />
+          </span>
+          <span className="home-card-label">
+            Live
+            <span className="live-pip" aria-hidden="true" />
+          </span>
+        </Link>
+        <Link href="/tv" className="home-card is-focus" data-kind="tv">
+          <span className="home-card-frame">
+            <CardImage src={art.tv} />
+            <span className="home-card-shade" aria-hidden="true" />
+          </span>
+          <span className="home-card-label">TV Series</span>
+        </Link>
+        <Link href="/movies" className="home-card" data-kind="movie">
+          <span className="home-card-frame">
+            <CardImage src={art.movie} />
+            <span className="home-card-shade" aria-hidden="true" />
+          </span>
+          <span className="home-card-label">Movies</span>
+        </Link>
+      </main>
+    </>
   );
 }
