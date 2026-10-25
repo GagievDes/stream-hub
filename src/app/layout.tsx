@@ -3,6 +3,7 @@ import { Figtree } from "next/font/google";
 import { NativeShell } from "@/components/native-shell";
 import { SiteHeader } from "@/components/site-header";
 import { TvMode } from "@/components/tv-mode";
+import { TvSpatialNav } from "@/components/tv-spatial-nav";
 import { TV_BOOT_SCRIPT } from "@/lib/tv-mode";
 import { publicAsset } from "@/lib/utils";
 import "./globals.css";
@@ -38,6 +39,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col">
         <TvMode />
+        <TvSpatialNav />
         <NativeShell />
         <SiteHeader />
         {children}

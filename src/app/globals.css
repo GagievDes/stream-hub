@@ -578,11 +578,20 @@ html.tv-mode .tv-top-nav a {
 html.tv-mode .tv-top-nav a.on,
 html.tv-mode .tv-top-nav a:hover,
 html.tv-mode .tv-top-nav a:focus,
-html.tv-mode .tv-top-nav a:focus-visible {
+html.tv-mode .tv-top-nav a:focus-visible,
+html.tv-mode .tv-top-nav a[data-tv-focused="true"] {
   border-color: #fff;
   background: rgba(255, 255, 255, 0.16);
   color: #fff;
   box-shadow: 0 0 22px rgba(255, 255, 255, 0.28);
+}
+
+html.tv-mode .tv-top-nav a:focus,
+html.tv-mode .tv-top-nav a:focus-visible,
+html.tv-mode .tv-top-nav a[data-tv-focused="true"] {
+  transform: scale(1.08);
+  outline: 4px solid #fff;
+  outline-offset: 5px;
 }
 
 html.tv-mode .max-w-6xl {
@@ -639,12 +648,14 @@ html.tv-mode .back-link svg {
 
 html.tv-mode .back-link:hover,
 html.tv-mode .back-link:focus,
-html.tv-mode .back-link:focus-visible {
+html.tv-mode .back-link:focus-visible,
+html.tv-mode .back-link[data-tv-focused="true"] {
   color: #111;
   background: #fff;
-  outline: 3px solid #fff;
-  outline-offset: 5px;
-  box-shadow: 0 0 24px rgba(255, 255, 255, 0.45);
+  outline: 4px solid #fff;
+  outline-offset: 6px;
+  box-shadow: 0 0 28px rgba(255, 255, 255, 0.7);
+  transform: scale(1.06);
 }
 
 html.tv-mode .watch-page .library-title {
@@ -929,11 +940,12 @@ html.tv-mode .tv-btn-info {
 
 html.tv-mode .tv-btn:hover,
 html.tv-mode .tv-btn:focus,
-html.tv-mode .tv-btn:focus-visible {
+html.tv-mode .tv-btn:focus-visible,
+html.tv-mode .tv-btn[data-tv-focused="true"] {
   transform: scale(1.06);
-  outline: 3px solid #fff;
-  outline-offset: 5px;
-  box-shadow: 0 0 28px rgba(255, 255, 255, 0.45);
+  outline: 4px solid #fff;
+  outline-offset: 6px;
+  box-shadow: 0 0 32px 4px rgba(255, 255, 255, 0.75);
 }
 
 html.tv-mode .tv-rows,
@@ -1041,9 +1053,10 @@ html.tv-mode .tv-card-sub {
 
 html.tv-mode .tv-card:hover .tv-card-poster,
 html.tv-mode .tv-card:focus .tv-card-poster,
-html.tv-mode .tv-card:focus-visible .tv-card-poster {
+html.tv-mode .tv-card:focus-visible .tv-card-poster,
+html.tv-mode .tv-card[data-tv-focused="true"] .tv-card-poster {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   transform: scale(1.08);
   outline-color: #fff;
   box-shadow:
@@ -1175,4 +1188,36 @@ html.tv-mode .tv-skel-buttons {
   50% {
     opacity: 0.5;
   }
+}
+
+html.tv-mode a:focus,
+html.tv-mode button:focus,
+html.tv-mode input:focus,
+html.tv-mode select:focus,
+html.tv-mode textarea:focus,
+html.tv-mode [data-tv-focused="true"] {
+  outline: 4px solid #fff;
+  outline-offset: 5px;
+  box-shadow:
+    0 0 0 6px rgba(255, 255, 255, 0.38),
+    0 0 36px 8px rgba(255, 255, 255, 0.85);
+}
+
+html.tv-mode [data-tv-spatial-skip]:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+html.tv-mode .player-chrome:focus-within {
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+}
+
+html.tv-mode a,
+html.tv-mode button,
+html.tv-mode input,
+html.tv-mode select,
+html.tv-mode textarea {
+  scroll-margin: 140px;
 }
