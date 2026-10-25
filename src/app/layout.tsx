@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Figtree } from "next/font/google";
 import { NativeShell } from "@/components/native-shell";
 import { SiteHeader } from "@/components/site-header";
+import { TvMode } from "@/components/tv-mode";
+import { TV_BOOT_SCRIPT } from "@/lib/tv-mode";
 import { publicAsset } from "@/lib/utils";
 import "./globals.css";
 
@@ -30,8 +32,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${body.variable} h-full antialiased`}>
+    <html lang="en" className={`${body.variable} h-full antialiased`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: TV_BOOT_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col">
+        <TvMode />
         <NativeShell />
         <SiteHeader />
         {children}

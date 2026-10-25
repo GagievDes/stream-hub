@@ -13,6 +13,25 @@ const LINKS = [
   { href: "/live", label: "Live TV" },
 ] as const;
 
+const TV_LINKS = [
+  { href: "/", label: "Home" },
+  { href: "/movies", label: "Movies" },
+  { href: "/tv", label: "TV" },
+  { href: "/live", label: "Live" },
+  { href: "/search", label: "Search" },
+] as const;
+
+function normalizePath(pathname: string) {
+  if (pathname.length > 1 && pathname.endsWith("/")) return pathname.slice(0, -1);
+  return pathname;
+}
+
+function tvNavActive(pathname: string, href: string) {
+  const path = normalizePath(pathname);
+  if (href === "/") return path === "/";
+  return path === href || path.startsWith(`${href}/`);
+}
+
 function isSearchPath(pathname: string) {
   return pathname === "/search" || pathname === "/search/";
 }
@@ -49,6 +68,17 @@ export function SiteHeader() {
             />
             <span className="brand-name">Strain Stream</span>
           </Link>
+          <nav className="tv-top-nav" aria-label="Sections">
+            {TV_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={tvNavActive(pathname, link.href) ? "on" : undefined}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
           <Link
             href="/search"
             className="header-search"

@@ -77,7 +77,7 @@ export function WatchPage({
         <p className="text-lg text-[var(--fg)]">Title not found</p>
         <Link
           href={backHref}
-          className="mt-4 inline-flex text-sm text-[var(--accent)]"
+          className="back-link mt-4 inline-flex text-sm text-[var(--accent)]"
         >
           Back to {mediaType === "movie" ? "Movies" : "TV Series"}
         </Link>
@@ -101,8 +101,8 @@ export function WatchPage({
   const typeLabel = mediaType === "movie" ? "Movie" : "TV Series";
 
   return (
-    <div className="flex-1">
-      <section className="relative isolate overflow-hidden">
+    <div className="watch-page flex-1">
+      <section id="about" className="relative isolate overflow-hidden">
         {backdrop ? (
           <Image
             src={backdrop}
@@ -120,7 +120,7 @@ export function WatchPage({
         <div className="relative mx-auto max-w-6xl px-5 pb-10 pt-6">
           <Link
             href={backHref}
-            className="mb-6 inline-flex items-center gap-2 text-sm text-[var(--muted)] transition-colors hover:text-[var(--fg)]"
+            className="back-link mb-6 inline-flex items-center gap-2 text-sm text-[var(--muted)] transition-colors hover:text-[var(--fg)]"
           >
             <ArrowLeft className="size-4" />
             Back to {mediaType === "movie" ? "Movies" : "TV Series"}
@@ -128,7 +128,7 @@ export function WatchPage({
 
           <div className="flex flex-col gap-8 md:flex-row md:items-start">
             {poster ? (
-              <div className="relative mx-auto aspect-[2/3] w-40 shrink-0 overflow-hidden rounded-[18px] shadow-2xl shadow-black/50 md:mx-0 md:w-48">
+              <div className="watch-poster relative mx-auto aspect-[2/3] w-40 shrink-0 overflow-hidden rounded-[18px] shadow-2xl shadow-black/50 md:mx-0 md:w-48">
                 <Image
                   src={poster}
                   alt={details.title}
@@ -147,11 +147,11 @@ export function WatchPage({
               </p>
               <h1 className="library-title">{details.title}</h1>
               {details.tagline ? (
-                <p className="mt-3 text-lg italic text-[var(--muted)]">
+                <p className="watch-tagline mt-3 text-lg italic text-[var(--muted)]">
                   {details.tagline}
                 </p>
               ) : null}
-              <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-sm text-[var(--muted)] md:justify-start">
+              <div className="watch-meta mt-4 flex flex-wrap items-center justify-center gap-3 text-sm text-[var(--muted)] md:justify-start">
                 {details.voteAverage > 0 ? (
                   <span>{details.voteAverage.toFixed(1)} rating</span>
                 ) : null}
@@ -167,7 +167,7 @@ export function WatchPage({
                 ) : null}
               </div>
               {details.overview ? (
-                <p className="mt-4 max-w-2xl text-[var(--muted)] leading-relaxed">
+                <p className="watch-overview mt-4 max-w-2xl text-[var(--muted)] leading-relaxed">
                   {details.overview}
                 </p>
               ) : null}
@@ -176,7 +176,7 @@ export function WatchPage({
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-5 pb-16">
+      <section id="watch" className="mx-auto max-w-6xl px-5 pb-16">
         <CastRow cast={cast} />
         <div className="mt-10">
           <PlayerEmbed

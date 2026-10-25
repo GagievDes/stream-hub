@@ -57,7 +57,7 @@ export function LiveTvPage() {
         <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">{selected.description}</p>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
+      <div className="live-layout grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
         <aside className="side-panel flex max-h-[50vh] flex-col overflow-hidden lg:h-0 lg:max-h-none lg:min-h-full">
           <div className="shrink-0 border-b border-[var(--line)] px-3 py-2.5">
             <p className="text-xs font-medium uppercase tracking-[0.16em] text-[var(--muted)]">

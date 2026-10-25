@@ -5,6 +5,8 @@ import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { SearchBar } from "@/components/search-bar";
 import { BrowseCatalog } from "@/components/browse-catalog";
+import { TvLibrary } from "@/components/tv-library";
+import { useTvMode } from "@/components/use-tv-mode";
 import { catalogShelves, type CatalogKey } from "@/lib/categories";
 import { getCatalog, searchMedia } from "@/lib/tmdb";
 import type { MediaItem, MediaType } from "@/lib/types";
@@ -24,6 +26,7 @@ export function BrowsePage({ mediaType }: { mediaType: MediaType }) {
 }
 
 function BrowsePageInner({ mediaType }: { mediaType: MediaType }) {
+  const tv = useTvMode();
   const searchParams = useSearchParams();
   const query = searchParams.get("q") ?? "";
   const label = mediaType === "movie" ? "Movies" : "TV Series";
@@ -78,40 +81,60 @@ function BrowsePageInner({ mediaType }: { mediaType: MediaType }) {
     };
   }, [mediaType, searching, trimmed, shelves]);
 
+  if (tv) {
+    return (
+      <TvLibrary
+        mediaType={mediaType}
+        label={label}
+        query={query}
+        trimmed={trimmed}
+        searching={searching}
+        shelves={shelves}
+        catalogs={catalogs}
+        searchItems={searchItems}
+        error={error}
+        loading={loading}
+      />
+    );
+  }
+
   return (
-    <div className="mx-auto w-full max-w-6xl flex-1 px-5 py-10">
-      <div className="mb-8 max-w-2xl">
-        <h1 className="library-title">{label}</h1>
-        <p className="library-lead">Search for your favorite {label}</p>
-      </div>
-
-      <div className="mb-8 max-w-2xl">
-        <SearchBar mediaType={mediaType} initialQuery={query} />
-      </div>
-
-      {error ? (
-        <div className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-          {error}
+    <>
+      <div className="tv-boot-placeholder" aria-hidden="true" />
+      <div className="desktop-browse mx-auto w-full max-w-6xl flex-1 px-5 py-10">
+        <div className="mb-8 max-w-2xl">
+          <h1 className="library-title">{label}</h1>
+          <p className="library-lead">Search for your favorite {label}</p>
         </div>
-      ) : loading ? (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-          {Array.from({ length: 10 }).map((_, i) => (
-            <div
-              key={i}
-              className="aspect-[2/3] animate-pulse rounded-[18px] bg-[var(--surface)]"
-            />
-          ))}
+
+        <div className="mb-8 max-w-2xl">
+          <SearchBar mediaType={mediaType} initialQuery={query} />
         </div>
-      ) : (
-        <BrowseCatalog
-          mediaType={mediaType}
-          shelves={shelves}
-          catalogs={catalogs}
-          searching={searching}
-          searchItems={searchItems}
-          query={trimmed}
-        />
-      )}
-    </div>
+
+        {error ? (
+          <div className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+            {error}
+          </div>
+        ) : loading ? (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div
+                key={i}
+                className="aspect-[2/3] animate-pulse rounded-[18px] bg-[var(--surface)]"
+              />
+            ))}
+          </div>
+        ) : (
+          <BrowseCatalog
+            mediaType={mediaType}
+            shelves={shelves}
+            catalogs={catalogs}
+            searching={searching}
+            searchItems={searchItems}
+            query={trimmed}
+          />
+        )}
+      </div>
+    </>
   );
 }
