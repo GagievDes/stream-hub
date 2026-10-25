@@ -94,6 +94,7 @@ export function TvRow({ title, cards }: { title: string; cards: TvCard[] }) {
           <button
             type="button"
             className="tv-row-arrow is-left"
+            data-tv-spatial-skip=""
             aria-label={`Scroll ${title} backward`}
             onClick={() => scrollByDir(-1)}
           >
@@ -129,6 +130,7 @@ export function TvRow({ title, cards }: { title: string; cards: TvCard[] }) {
                 <button
                   type="button"
                   className="tv-card-remove"
+                  data-tv-spatial-skip=""
                   aria-label={`Remove ${card.title}`}
                   onClick={card.onRemove}
                 >
@@ -142,6 +144,7 @@ export function TvRow({ title, cards }: { title: string; cards: TvCard[] }) {
           <button
             type="button"
             className="tv-row-arrow is-right"
+            data-tv-spatial-skip=""
             aria-label={`Scroll ${title} forward`}
             onClick={() => scrollByDir(1)}
           >

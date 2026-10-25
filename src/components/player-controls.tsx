@@ -307,6 +307,7 @@ export function PlayerControls({
     <button
       type="button"
       aria-label="Toggle playback"
+      data-tv-spatial-skip=""
       onClick={togglePlay}
       className="absolute inset-0 z-10"
     />
