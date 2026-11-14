@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Play } from "lucide-react";
 import { CastRow } from "@/components/cast-row";
 import { PlayerEmbed } from "@/components/player-embed";
 import {
@@ -171,6 +171,10 @@ export function WatchPage({
                   {details.overview}
                 </p>
               ) : null}
+              <a href="#watch" className="tv-play-launch tv-btn tv-btn-play">
+                <Play aria-hidden="true" />
+                Play
+              </a>
             </div>
           </div>
         </div>

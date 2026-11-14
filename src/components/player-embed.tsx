@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { PlayerControls, type PlayerServer } from "@/components/player-controls";
+import { TvCueLine } from "@/components/tv-cue-line";
+import { useTvMode } from "@/components/use-tv-mode";
 import { fetchQualities, fetchStream, isPlaylistUrl, qualityChoices, toWebVtt, type StreamSubtitle } from "@/lib/stream-api";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown } from "lucide-react";
@@ -15,11 +17,33 @@ import {
   readPlaybackSignal,
   shouldAdvanceEpisode,
 } from "@/lib/episode-advance";
+import {
+  cueFont,
+  parseVttCues,
+  readCueSize,
+  writeCueSize,
+  type Cue,
+  type CueSize,
+} from "@/lib/tv-cues";
 import { EMBED_SOURCES, getEmbedUrl, postToEmbed } from "@/lib/vidsrc";
 import type { MediaType, TvSeason } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const LOAD_TIMEOUT_MS = 9000;
+
+function subscribeWatchHash(onChange: () => void) {
+  window.addEventListener("hashchange", onChange);
+  return () => window.removeEventListener("hashchange", onChange);
+}
+
+function readWatchHash() {
+  return window.location.hash === "#watch";
+}
+
+function subscribeCueSize(onChange: () => void) {
+  window.addEventListener("strain-cue-size", onChange);
+  return () => window.removeEventListener("strain-cue-size", onChange);
+}
 
 function applySubtitle(video: HTMLVideoElement, index: number | null) {
   const elements = [...video.querySelectorAll("track")];
@@ -115,6 +139,21 @@ export function PlayerEmbed({
   const [wantCatalog, setWantCatalog] = useState(false);
   const [catalog, setCatalog] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [theater, setTheater] = useState(false);
+  const [cues, setCues] = useState<Cue[]>([]);
+  const cueSize = useSyncExternalStore(subscribeCueSize, readCueSize, () => "lg" as CueSize);
+  const playerOpen = useSyncExternalStore(subscribeWatchHash, readWatchHash, () => false);
+  const tv = useTvMode();
+  const stage = tv && playerOpen;
+
+  useLayoutEffect(() => {
+    document.documentElement.classList.toggle("tv-playing", stage);
+    if (!stage) return;
+    const button = document.querySelector<HTMLElement>(
+      ".player-chrome button[aria-label='Pause'], .player-chrome button[aria-label='Play']",
+    );
+    button?.focus({ preventScroll: true });
+    return () => document.documentElement.classList.remove("tv-playing");
+  }, [stage]);
 
   useEffect(() => {
     if (!theater) return;
@@ -476,12 +515,13 @@ export function PlayerEmbed({
 
   useEffect(() => {
     const video = videoRef.current;
-    if (!nativeReady || !video || subtitleIndex == null) {
+    if (subtitleIndex == null) {
       if (video) {
         for (const node of video.querySelectorAll("track")) node.remove();
         applySubtitle(video, null);
       }
-      return;
+      const clear = window.setTimeout(() => setCues([]), 0);
+      return () => window.clearTimeout(clear);
     }
 
     const track = subtitles.find((item) => item.index === subtitleIndex);
@@ -489,7 +529,9 @@ export function PlayerEmbed({
 
     let cancelled = false;
     const urls: string[] = [];
-    for (const node of video.querySelectorAll("track")) node.remove();
+    if (video) {
+      for (const node of video.querySelectorAll("track")) node.remove();
+    }
 
     void (async () => {
       try {
@@ -497,6 +539,11 @@ export function PlayerEmbed({
         if (!response.ok || cancelled) return;
         const vtt = toWebVtt(await response.text());
         if (cancelled) return;
+        const parsed = parseVttCues(vtt);
+        if (cancelled) return;
+        setCues(parsed);
+        if (parsed.length === 0 && tv) sendSubtitle(frameRef.current, subtitleIndex);
+        if (!nativeReady || !video || tv) return;
         const url = URL.createObjectURL(new Blob([vtt], { type: "text/vtt" }));
         if (cancelled) {
           URL.revokeObjectURL(url);
@@ -512,7 +559,8 @@ export function PlayerEmbed({
         video.appendChild(element);
         applySubtitle(video, subtitleIndex);
       } catch {
-        // The embed captions stay available if this file cannot be read.
+        if (!cancelled) setCues([]);
+        if (!cancelled && tv) sendSubtitle(frameRef.current, subtitleIndex);
       }
     })();
 
@@ -520,7 +568,12 @@ export function PlayerEmbed({
       cancelled = true;
       for (const url of urls) URL.revokeObjectURL(url);
     };
-  }, [nativeReady, subtitleIndex, subtitles, src]);
+  }, [nativeReady, subtitleIndex, subtitles, src, tv]);
+
+  useEffect(() => {
+    if (!tv || subtitleIndex == null || cues.length === 0) return;
+    sendSubtitle(frameRef.current, null);
+  }, [tv, subtitleIndex, cues, src]);
 
   useLayoutEffect(() => {
     if (theater || shellIsFullscreen()) return;
@@ -624,7 +677,11 @@ export function PlayerEmbed({
   const player = (
     <div
       ref={shellRef}
-      className={cn("player-shell relative w-full overflow-hidden bg-black", theater && "is-theater")}
+      className={cn(
+        "player-shell relative w-full overflow-hidden bg-black",
+        theater && "is-theater",
+        stage && "tv-stage",
+      )}
     >
       {(status === "loading" || status === "switching") && !nativeReady && (
         <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center p-3">
@@ -654,7 +711,7 @@ export function PlayerEmbed({
       />
       <iframe
         ref={frameRef}
-        src={src}
+        src={tv && !stage ? undefined : src}
         title={`${title} player`}
         allowFullScreen
         allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
@@ -668,9 +725,20 @@ export function PlayerEmbed({
           loadedAtRef.current = Date.now();
           sawPlaybackRef.current = false;
           setStatus("ready");
-          if (subtitleIndex != null) sendSubtitle(frameRef.current, subtitleIndex);
+          if (subtitleIndex != null && !(tv && cues.length > 0)) {
+            sendSubtitle(frameRef.current, subtitleIndex);
+          }
         }}
       />
+      {stage && cues.length > 0 ? (
+        <TvCueLine
+          cues={cues}
+          font={cueFont(cueSize)}
+          useVideo={nativeReady}
+          videoRef={videoRef}
+          frameRef={frameRef}
+        />
+      ) : null}
       <PlayerControls
         mediaKey={src}
         frameRef={frameRef}
@@ -679,9 +747,14 @@ export function PlayerEmbed({
         useVideo={nativeReady}
         subtitles={subtitles}
         subtitleIndex={subtitleIndex}
+        heading={
+          stage ? (mediaType === "tv" ? `${title} · S${season} E${episode}` : title) : undefined
+        }
+        cueSize={stage ? cueSize : undefined}
+        onCueSize={stage ? writeCueSize : undefined}
         onSubtitle={(index) => {
           setSubtitleIndex(index);
-          if (!nativeReady) sendSubtitle(frameRef.current, index);
+          if (!nativeReady && !(tv && index != null)) sendSubtitle(frameRef.current, index);
         }}
         onInspect={() => setWantCatalog(true)}
         catalog={catalog}

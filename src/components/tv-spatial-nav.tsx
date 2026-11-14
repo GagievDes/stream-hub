@@ -10,7 +10,7 @@ import {
   type Dir,
   type Rect,
 } from "@/lib/tv-spatial";
-import { isTvBackKey, TV_CHANGE_EVENT } from "@/lib/tv-mode";
+import { isTvBackKey, isVidaaBackKey, TV_CHANGE_EVENT } from "@/lib/tv-mode";
 
 const EXPLICIT_ROW =
   ".header-bar, .tv-hero-actions, .tv-row-scroller, .player-actions, .cast-row";
@@ -237,6 +237,12 @@ function reveal(el: HTMLElement) {
 }
 
 function preferred(): HTMLElement | null {
+  if (document.documentElement.classList.contains("tv-playing")) {
+    const control = document.querySelector(
+      ".player-chrome button[aria-label='Pause'], .player-chrome button[aria-label='Play']",
+    );
+    if (control instanceof HTMLElement) return control;
+  }
   const play = document.querySelector(".tv-btn-play");
   if (play instanceof HTMLElement) return play;
 
@@ -344,7 +350,11 @@ function TvSpatialNavInner() {
     function onKeyDown(event: KeyboardEvent) {
       if (!tvOn()) return;
       if (event.altKey || event.ctrlKey || event.metaKey) return;
-      if (isTvBackKey(event) || event.key === "Escape" || event.keyCode === 27) return;
+      const vidaaBack =
+        document.documentElement.classList.contains("vidaa-mode") && isVidaaBackKey(event);
+      if (isTvBackKey(event) || vidaaBack || event.key === "Escape" || event.keyCode === 27) {
+        return;
+      }
 
       const target = event.target instanceof HTMLElement ? event.target : null;
       const active =

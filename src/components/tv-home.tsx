@@ -19,7 +19,7 @@ import type { MediaDetails, MediaItem } from "@/lib/types";
 function continueCards(items: ContinueItem[]): TvCard[] {
   return items.map((item) => ({
     key: `${item.mediaType}-${item.id}`,
-    href: continueHref(item),
+    href: `${continueHref(item)}#watch`,
     title: item.title,
     posterPath: item.posterPath,
     subtitle: continueSubtitle(item),
