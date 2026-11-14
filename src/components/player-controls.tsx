@@ -3,6 +3,7 @@
 import { Captions, ListVideo, Maximize, Minimize, Pause, Play, RectangleHorizontal, Server, Settings, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import type { TvSeason } from "@/lib/types";
+import { CUE_SIZES, type CueSize } from "@/lib/tv-cues";
 import { notePlaybackStarted, playNeedsRecovery, postToEmbed, recoverEmbedOrigin } from "@/lib/vidsrc";
 import { cn } from "@/lib/utils";
 
@@ -56,6 +57,9 @@ export function PlayerControls({
   catalog,
   mediaKey,
   episodes,
+  heading,
+  cueSize,
+  onCueSize,
 }: {
   frameRef: RefObject<HTMLIFrameElement | null>;
   videoRef: RefObject<HTMLVideoElement | null>;
@@ -75,6 +79,9 @@ export function PlayerControls({
   onInspect?: () => void;
   catalog?: "idle" | "loading" | "ready" | "error";
   mediaKey?: string;
+  heading?: string;
+  cueSize?: CueSize;
+  onCueSize?: (size: CueSize) => void;
   episodes?: {
     seasons: TvSeason[];
     season: number;
@@ -330,6 +337,7 @@ export function PlayerControls({
         shown ? "opacity-100" : "pointer-events-none translate-y-2 opacity-0",
       )}
     >
+      {heading ? <p className="tv-player-title">{heading}</p> : null}
       <div className="flex min-w-0 items-center gap-2 sm:flex-1">
       <button
         type="button"
@@ -462,6 +470,20 @@ export function PlayerControls({
         }}
         icon={<Captions className="size-4" />}
       >
+        {onCueSize ? (
+          <div className="tv-cue-sizes" role="group" aria-label="Subtitle size">
+            {CUE_SIZES.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                aria-pressed={cueSize === item.id}
+                onClick={() => onCueSize(item.id)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
         <MenuChoice
           selected={subtitleIndex == null}
           onSelect={() => {

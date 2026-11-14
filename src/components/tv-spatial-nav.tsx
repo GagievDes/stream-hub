@@ -237,6 +237,12 @@ function reveal(el: HTMLElement) {
 }
 
 function preferred(): HTMLElement | null {
+  if (document.documentElement.classList.contains("tv-playing")) {
+    const control = document.querySelector(
+      ".player-chrome button[aria-label='Pause'], .player-chrome button[aria-label='Play']",
+    );
+    if (control instanceof HTMLElement) return control;
+  }
   const play = document.querySelector(".tv-btn-play");
   if (play instanceof HTMLElement) return play;
 

@@ -124,6 +124,14 @@ a {
   border-radius: 0;
 }
 
+.tv-play-launch {
+  display: none;
+}
+
+.tv-player-title {
+  display: none;
+}
+
 .scroll-panel {
   overflow-anchor: none;
   scrollbar-width: thin;
@@ -1220,4 +1228,138 @@ html.tv-mode input,
 html.tv-mode select,
 html.tv-mode textarea {
   scroll-margin: 140px;
+}
+
+html.tv-mode .tv-play-launch {
+  display: inline-flex;
+  margin-top: 28px;
+}
+
+html.tv-mode .player-shell:not(.tv-stage) {
+  display: none;
+}
+
+html.tv-playing,
+html.tv-playing body {
+  overflow: hidden;
+}
+
+html.tv-playing .site-header {
+  visibility: hidden;
+}
+
+html.tv-playing .site-header,
+html.tv-playing .watch-page {
+  pointer-events: none;
+}
+
+html.tv-playing .player-shell {
+  pointer-events: auto;
+}
+
+html.tv-mode .player-shell.tv-stage {
+  position: fixed;
+  z-index: 80;
+  inset: 0;
+  width: auto;
+  height: auto;
+  aspect-ratio: auto;
+  border: 0;
+  border-radius: 0;
+}
+
+html.tv-mode .player-shell.tv-stage .player-chrome {
+  inset: auto 0 0 0;
+  min-height: 168px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+  border: 0;
+  border-radius: 0;
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.92) 42%);
+  padding: 72px 72px 36px;
+}
+
+html.tv-mode .player-shell.tv-stage .player-chrome > div {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  gap: 16px;
+}
+
+html.tv-mode .player-shell.tv-stage .tv-player-title {
+  display: block;
+  margin: 0;
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+html.tv-mode .player-shell.tv-stage .player-chrome [role="menu"] {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 90;
+  width: min(460px, 42vw);
+  max-height: none;
+  margin: 0;
+  border-width: 0 0 0 1px;
+  border-radius: 0;
+  padding: 48px 28px;
+  background: rgba(0, 0, 0, 0.94);
+}
+
+html.tv-mode .tv-cue-sizes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding: 4px;
+}
+
+html.tv-mode .tv-cue-sizes button {
+  min-height: 56px;
+  padding: 0 18px;
+  border: 3px solid rgba(255, 255, 255, 0.4);
+  border-radius: 999px;
+  background: transparent;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+html.tv-mode .tv-cue-sizes button[aria-pressed="true"] {
+  border-color: #fff;
+  background: #fff;
+  color: #111;
+}
+
+html.tv-mode .player-shell.tv-stage button[aria-label="Full screen"],
+html.tv-mode .player-shell.tv-stage button[aria-label="Exit full screen"],
+html.tv-mode .player-shell.tv-stage button[aria-label="Theater"],
+html.tv-mode .player-shell.tv-stage button[aria-label="Exit theater"] {
+  display: none;
+}
+
+.tv-cue {
+  position: absolute;
+  z-index: 26;
+  right: 8%;
+  bottom: 22%;
+  left: 8%;
+  margin: 0;
+  color: #fff;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+  text-shadow:
+    0 0 4px #000,
+    0 2px 8px #000,
+    2px 2px 0 #000,
+    -2px -2px 0 #000;
+  white-space: pre-line;
+  pointer-events: none;
 }

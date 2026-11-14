@@ -53,7 +53,7 @@ export function TvLibrary({
 
   const continueCards: TvCard[] = continued.map((item) => ({
     key: `${item.mediaType}-${item.id}`,
-    href: continueHref(item),
+    href: `${continueHref(item)}#watch`,
     title: item.title,
     posterPath: item.posterPath,
     subtitle: continueSubtitle(item),
