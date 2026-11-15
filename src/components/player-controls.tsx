@@ -106,6 +106,7 @@ export function PlayerControls({
   const seeking = useRef(false);
   const lastNudge = useRef(0);
   const pausedByUser = useRef(false);
+  const stickPlaying = useRef(false);
   const lastMediaTime = useRef(0);
 
   function paintClock(current: number, length?: number) {
@@ -132,6 +133,7 @@ export function PlayerControls({
 
   useEffect(() => {
     pausedByUser.current = false;
+    stickPlaying.current = false;
     lastMediaTime.current = 0;
     durationValue.current = 1;
     seeking.current = false;
@@ -220,8 +222,13 @@ export function PlayerControls({
       const data = event.data;
       if (!data || typeof data !== "object") return;
       const name = "event" in data && typeof data.event === "string" ? data.event : "";
-      if (name === "frameXTV:ready" && lastMediaTime.current < 0.2 && !pausedByUser.current) {
-        setPlaying(false);
+      if (
+        name === "frameXTV:ready" &&
+        !stickPlaying.current &&
+        !pausedByUser.current &&
+        lastMediaTime.current < 1
+      ) {
+        setPlaying((value) => (value ? false : value));
       }
       if (name === "frameXTV:timeupdate") {
         const current = "currentTime" in data ? data.currentTime : null;
@@ -234,11 +241,15 @@ export function PlayerControls({
             paintClock(current, typeof length === "number" ? length : undefined);
           }
           if (current > previous) notePlaybackStarted();
-          if (current > previous + 0.2 && !pausedByUser.current) setPlaying((value) => (value ? value : true));
+          if (current > 1 && current > previous && !pausedByUser.current) {
+            stickPlaying.current = true;
+            setPlaying((value) => (value ? value : true));
+          }
         }
       }
       if (playNeedsRecovery()) recoverEmbedOrigin(event.origin, frameRef.current);
-      if (name === "frameXTV:ended") {
+      if (name === "frameXTV:ended" && lastMediaTime.current > 30) {
+        stickPlaying.current = false;
         pausedByUser.current = true;
         setPlaying(false);
       }
@@ -275,6 +286,7 @@ export function PlayerControls({
     }
     const nextPlaying = !playing;
     pausedByUser.current = !nextPlaying;
+    stickPlaying.current = nextPlaying;
     send(frameRef.current, { action: nextPlaying ? "play" : "pause" });
     setPlaying(nextPlaying);
   }

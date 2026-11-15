@@ -29,8 +29,6 @@ import { EMBED_SOURCES, getEmbedUrl, postToEmbed } from "@/lib/vidsrc";
 import type { MediaType, TvSeason } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const LOAD_TIMEOUT_MS = 9000;
-
 function subscribeWatchHash(onChange: () => void) {
   window.addEventListener("hashchange", onChange);
   return () => window.removeEventListener("hashchange", onChange);
@@ -92,10 +90,7 @@ export function PlayerEmbed({
     ];
   }, [seasons]);
 
-  const [season, setSeason] = useState(() => {
-    const match = seasonOptions.find((s) => s.seasonNumber === initialSeason);
-    return match?.seasonNumber ?? seasonOptions[0].seasonNumber;
-  });
+  const [season, setSeason] = useState(initialSeason);
 
   const defaultExpanded =
     seasonOptions.find((s) => s.seasonNumber === initialSeason)?.seasonNumber ??
@@ -112,15 +107,7 @@ export function PlayerEmbed({
     return current.episodes;
   }, [season, seasonOptions]);
 
-  const [episode, setEpisode] = useState(() => {
-    const seasonMatch =
-      seasonOptions.find((s) => s.seasonNumber === initialSeason) ??
-      seasonOptions[0];
-    const epMatch = seasonMatch.episodes.find(
-      (e) => e.episodeNumber === initialEpisode,
-    );
-    return epMatch?.episodeNumber ?? seasonMatch.episodes[0]?.episodeNumber ?? 1;
-  });
+  const [episode, setEpisode] = useState(initialEpisode);
 
   const [sourceIndex, setSourceIndex] = useState(0);
   const [status, setStatus] = useState<"loading" | "ready" | "switching">(
@@ -177,8 +164,7 @@ export function PlayerEmbed({
   const playbackTimeRef = useRef(0);
   const listRef = useRef<HTMLDivElement>(null);
   const loadedRef = useRef(false);
-  const sawPlaybackRef = useRef(false);
-  const loadedAtRef = useRef(0);
+  const maxPlayedRef = useRef(0);
   const advancingRef = useRef(false);
   const stickFullscreen = useRef(false);
   const pinScroll = useRef<number | null>(null);
@@ -235,10 +221,11 @@ export function PlayerEmbed({
   }, []);
 
   useEffect(() => {
+    if (seasons.length === 0) return;
     if (!episodes.some((e) => e.episodeNumber === episode)) {
       setEpisode(episodes[0]?.episodeNumber ?? 1);
     }
-  }, [episodes, episode]);
+  }, [episodes, episode, seasons.length]);
 
   const src = useMemo(() => {
     const sourceId = EMBED_SOURCES[sourceIndex]?.id ?? EMBED_SOURCES[0].id;
@@ -309,23 +296,8 @@ export function PlayerEmbed({
 
   useEffect(() => {
     loadedRef.current = false;
+    maxPlayedRef.current = 0;
     setStatus("loading");
-
-    const timer = window.setTimeout(() => {
-      if (loadedRef.current) return;
-
-      setSourceIndex((current) => {
-        const next = current + 1;
-        if (next >= EMBED_SOURCES.length) {
-          setStatus("ready");
-          return current;
-        }
-        setStatus("switching");
-        return next;
-      });
-    }, LOAD_TIMEOUT_MS);
-
-    return () => window.clearTimeout(timer);
   }, [src]);
 
   useEffect(() => {
@@ -608,15 +580,15 @@ export function PlayerEmbed({
 
   useEffect(() => {
     if (mediaType !== "tv") return;
-    sawPlaybackRef.current = false;
-    loadedAtRef.current = 0;
+    maxPlayedRef.current = 0;
     advancingRef.current = false;
 
     function onMessage(event: MessageEvent) {
+      if (event.source !== frameRef.current?.contentWindow) return;
       const signal = readPlaybackSignal(event.data);
       if (!signal) return;
       if (signal.kind === "progress") {
-        sawPlaybackRef.current = true;
+        if (signal.seconds > maxPlayedRef.current) maxPlayedRef.current = signal.seconds;
         return;
       }
       if (advancingRef.current) return;
@@ -624,10 +596,7 @@ export function PlayerEmbed({
         !shouldAdvanceEpisode({
           signal,
           slot: { season, episode },
-          sawPlayback: sawPlaybackRef.current,
-          loadedForMs: loadedAtRef.current
-            ? Date.now() - loadedAtRef.current
-            : 0,
+          maxPlayedSeconds: maxPlayedRef.current,
         })
       ) {
         return;
@@ -722,8 +691,6 @@ export function PlayerEmbed({
         )}
         onLoad={() => {
           loadedRef.current = true;
-          loadedAtRef.current = Date.now();
-          sawPlaybackRef.current = false;
           setStatus("ready");
           if (subtitleIndex != null && !(tv && cues.length > 0)) {
             sendSubtitle(frameRef.current, subtitleIndex);

@@ -50,15 +50,15 @@ export function WatchPage({
           setStatus("error");
           return;
         }
+        setDetails(nextDetails);
+        setStatus("ready");
         const [nextSeasons, nextCast] = await Promise.all([
           mediaType === "tv" ? getTvSeasons(nextDetails.id) : Promise.resolve(undefined),
           getCast(mediaType, nextDetails.id),
         ]);
         if (!active) return;
-        setDetails(nextDetails);
         setSeasons(nextSeasons);
         setCast(nextCast);
-        setStatus("ready");
       } catch {
         if (active) setStatus("error");
       }
