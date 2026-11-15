@@ -6,8 +6,8 @@ export type TvSlot = {
 };
 
 export type PlaybackSignal =
-  | { kind: "progress" }
-  | { kind: "ended"; season: number | null; episode: number | null };
+  | { kind: "progress"; seconds: number }
+  | { kind: "ended"; season: number | null; episode: number | null; seconds: number };
 
 const END_STATUSES = new Set([
   "ended",
@@ -104,35 +104,33 @@ export function readPlaybackSignal(data: unknown): PlaybackSignal | null {
   const season = asNumber(info?.season ?? nested.season ?? root.season);
   const episode = asNumber(info?.episode ?? nested.episode ?? root.episode);
 
-  if (END_STATUSES.has(status)) {
-    return { kind: "ended", season, episode };
-  }
-
   const currentTime = asNumber(
     nested.currentTime ?? nested.current_time ?? root.currentTime,
   );
   const duration = asNumber(nested.duration ?? root.duration);
-  if (
-    duration != null &&
-    duration > 60 &&
-    currentTime != null &&
-    currentTime >= duration - 1.5
-  ) {
-    return { kind: "ended", season, episode };
+  const seconds = currentTime ?? 0;
+  const nearEnd =
+    duration != null && duration > 60 && currentTime != null && currentTime >= duration - 1.5;
+
+  if (END_STATUSES.has(status) || nearEnd) {
+    return { kind: "ended", season, episode, seconds };
   }
 
   if (PROGRESS_STATUSES.has(status) || currentTime != null) {
-    return { kind: "progress" };
+    return { kind: "progress", seconds };
   }
 
   return null;
 }
 
+/**
+ * Move to the next episode only after this one has really played.
+ * Startup messages ("ended", "complete") and a slow play button must not skip it.
+ */
 export function shouldAdvanceEpisode(input: {
   signal: PlaybackSignal;
   slot: TvSlot;
-  sawPlayback: boolean;
-  loadedForMs: number;
+  maxPlayedSeconds: number;
 }): boolean {
   if (input.signal.kind !== "ended") return false;
   if (input.signal.season != null && input.signal.season !== input.slot.season) {
@@ -144,9 +142,6 @@ export function shouldAdvanceEpisode(input: {
   ) {
     return false;
   }
-  const identified = input.signal.season != null || input.signal.episode != null;
-  if (!identified && !input.sawPlayback && input.loadedForMs < 15_000) {
-    return false;
-  }
-  return true;
+  const played = Math.max(input.maxPlayedSeconds, input.signal.seconds);
+  return played >= 30;
 }
