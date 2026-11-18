@@ -1380,6 +1380,97 @@ html.tv-mode .player-shell.tv-stage button[aria-label="Exit theater"] {
   opacity: 0;
 }
 
+.player-buffer-chip {
+  position: absolute;
+  top: 28px;
+  left: 50%;
+  z-index: 28;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transform: translateX(-50%);
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.player-buffer-chip button {
+  pointer-events: auto;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: #fff;
+  color: #111;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.player-buffer-spinner {
+  width: 18px;
+  height: 18px;
+  border-width: 2px;
+}
+
+.player-up-next {
+  position: absolute;
+  top: 18%;
+  left: 50%;
+  z-index: 28;
+  display: flex;
+  width: min(560px, 86%);
+  transform: translateX(-50%);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 28px 32px;
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.88);
+  color: #fff;
+  pointer-events: auto;
+}
+
+.player-up-next-kicker {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.player-up-next-title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.player-up-next-count {
+  margin: 0 0 8px;
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+html.tv-mode .player-shell.tv-stage .player-buffer-chip {
+  top: 48px;
+  font-size: 22px;
+}
+
+html.tv-mode .player-shell.tv-stage .player-up-next {
+  top: 16%;
+  width: min(720px, 70%);
+  padding: 40px 44px;
+}
+
+html.tv-mode .player-shell.tv-stage .player-up-next-title {
+  font-size: 40px;
+}
+
 .player-source-spinner {
   width: 52px;
   height: 52px;
