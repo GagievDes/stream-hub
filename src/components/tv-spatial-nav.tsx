@@ -13,7 +13,7 @@ import {
 import { isTvBackKey, isVidaaBackKey, TV_CHANGE_EVENT } from "@/lib/tv-mode";
 
 const EXPLICIT_ROW =
-  ".header-bar, .tv-hero-actions, .tv-row-scroller, .player-actions, .cast-row";
+  ".header-bar, .tv-hero-actions, .tv-detail-actions, .tv-season-row, .tv-row-scroller, .tv-cast-scroller, .tv-menu-seasons, .player-actions, .cast-row";
 const CANDIDATES = [
   "a[href]",
   "button:not([disabled])",
@@ -139,10 +139,18 @@ function accept(el: HTMLElement) {
   return true;
 }
 
+function focusRoot(): ParentNode {
+  if (!document.documentElement.classList.contains("tv-playing")) return document;
+  const menu = document.querySelector(".player-chrome [role='menu']");
+  if (menu) return menu;
+  return document.querySelector(".player-shell") ?? document;
+}
+
 function collect(): Item[] {
   const seen = new Set<HTMLElement>();
   const items: Item[] = [];
-  document.querySelectorAll<HTMLElement>(CANDIDATES).forEach((el) => {
+  const root = focusRoot();
+  root.querySelectorAll<HTMLElement>(CANDIDATES).forEach((el) => {
     if (seen.has(el) || !accept(el)) return;
     seen.add(el);
     const box = el.getBoundingClientRect();
@@ -187,27 +195,34 @@ function build() {
   return { items, rows };
 }
 
-function align(scroller: HTMLElement, el: HTMLElement, axis: "x" | "y", margin: number) {
-  const box = el.getBoundingClientRect();
-  const view = scroller.getBoundingClientRect();
-  if (axis === "x") {
-    if (box.left < view.left + margin) {
-      scroller.scrollLeft -= view.left + margin - box.left;
-    } else if (box.right > view.right - margin) {
-      scroller.scrollLeft += box.right - (view.right - margin);
-    }
-    return;
-  }
-  if (box.top < view.top + margin) {
-    scroller.scrollTop -= view.top + margin - box.top;
-  } else if (box.bottom > view.bottom - margin) {
-    scroller.scrollTop += box.bottom - (view.bottom - margin);
-  }
+function motion(): ScrollBehavior {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
 }
 
-function reveal(el: HTMLElement) {
-  const row = el.closest(".tv-row-scroller");
-  if (row instanceof HTMLElement) align(row, el, "x", 96);
+function align(
+  scroller: HTMLElement,
+  el: HTMLElement,
+  axis: "x" | "y",
+  margin: number,
+  behavior: ScrollBehavior,
+) {
+  const box = el.getBoundingClientRect();
+  const view = scroller.getBoundingClientRect();
+  let delta = 0;
+  if (axis === "x") {
+    if (box.left < view.left + margin) delta = -(view.left + margin - box.left);
+    else if (box.right > view.right - margin) delta = box.right - (view.right - margin);
+    if (delta !== 0) scroller.scrollTo({ left: scroller.scrollLeft + delta, behavior });
+    return;
+  }
+  if (box.top < view.top + margin) delta = -(view.top + margin - box.top);
+  else if (box.bottom > view.bottom - margin) delta = box.bottom - (view.bottom - margin);
+  if (delta !== 0) scroller.scrollTo({ top: scroller.scrollTop + delta, behavior });
+}
+
+function reveal(el: HTMLElement, behavior: ScrollBehavior) {
+  const row = el.closest(".tv-row-scroller, .tv-season-row, .tv-cast-scroller");
+  if (row instanceof HTMLElement) align(row, el, "x", 140, behavior);
 
   let node = el.parentElement;
   while (node && node !== document.documentElement) {
@@ -215,29 +230,26 @@ function reveal(el: HTMLElement) {
       const style = getComputedStyle(node);
       const scrollY = style.overflowY === "auto" || style.overflowY === "scroll";
       const scrollX = style.overflowX === "auto" || style.overflowX === "scroll";
-      if (scrollY) align(node, el, "y", 28);
-      if (scrollX) align(node, el, "x", 28);
+      if (scrollY) align(node, el, "y", 28, behavior);
+      if (scrollX) align(node, el, "x", 28, behavior);
     }
     node = node.parentElement;
   }
 
   const box = el.getBoundingClientRect();
-  const topLimit = 130;
-  const bottomLimit = window.innerHeight - 72;
+  const topLimit = document.querySelector(".tv-detail") ? 240 : 150;
+  const bottomLimit = window.innerHeight - 120;
   let delta = 0;
   if (box.top < topLimit) delta = box.top - topLimit;
   else if (box.bottom > bottomLimit) delta = box.bottom - bottomLimit;
   if (delta === 0) return;
-
-  const root = document.documentElement;
-  const previous = root.style.scrollBehavior;
-  root.style.scrollBehavior = "auto";
-  window.scrollBy(0, delta);
-  root.style.scrollBehavior = previous;
+  window.scrollBy({ top: delta, behavior });
 }
 
 function preferred(): HTMLElement | null {
   if (document.documentElement.classList.contains("tv-playing")) {
+    const retry = document.querySelector(".player-source-status button");
+    if (retry instanceof HTMLElement) return retry;
     const control = document.querySelector(
       ".player-chrome button[aria-label='Pause'], .player-chrome button[aria-label='Play']",
     );
@@ -294,7 +306,7 @@ function TvSpatialNavInner() {
       });
     }
 
-    function focusEl(el: HTMLElement) {
+    function focusEl(el: HTMLElement, behavior: ScrollBehavior = motion()) {
       applying = true;
       try {
         clearMark();
@@ -307,7 +319,7 @@ function TvSpatialNavInner() {
             el.focus();
           }
         }
-        reveal(el);
+        reveal(el, behavior);
         lastKeyAt = Date.now();
       } finally {
         applying = false;
@@ -323,7 +335,7 @@ function TvSpatialNavInner() {
       if (pos) column = pos.col;
     }
 
-    function move(dir: Dir) {
+    function move(dir: Dir, behavior: ScrollBehavior = motion()) {
       if (lastFocused && !lastFocused.isConnected) lastFocused = null;
       const { items, rows } = build();
       if (items.length === 0) return false;
@@ -342,7 +354,7 @@ function TvSpatialNavInner() {
       if (result) {
         column = result.column;
         const next = items[result.index]?.el;
-        if (next) focusEl(next);
+        if (next) focusEl(next, behavior);
       }
       return true;
     }
@@ -399,7 +411,7 @@ function TvSpatialNavInner() {
       if ((isRange(target) || isRange(active)) && (dir === "left" || dir === "right")) return;
 
       userMoved = true;
-      if (move(dir)) event.preventDefault();
+      if (move(dir, event.repeat ? "auto" : motion())) event.preventDefault();
     }
 
     function onKeyUp(event: KeyboardEvent) {
@@ -474,11 +486,21 @@ function TvSpatialNavInner() {
       tick();
     }
 
+    function onRefocus() {
+      if (stopped || !tvOn()) return;
+      userMoved = false;
+      const target = preferred();
+      if (!target) return;
+      focusEl(target, "auto");
+      rememberColumn(target);
+    }
+
     window.addEventListener("keydown", onKeyDown, true);
     window.addEventListener("keyup", onKeyUp, true);
     window.addEventListener("focusin", onFocusIn, true);
     window.addEventListener("pointermove", onPointerMove, true);
     window.addEventListener(TV_CHANGE_EVENT, onTvChange);
+    window.addEventListener("strain-tv-refocus", onRefocus);
     tick();
 
     return () => {
@@ -489,6 +511,7 @@ function TvSpatialNavInner() {
       window.removeEventListener("focusin", onFocusIn, true);
       window.removeEventListener("pointermove", onPointerMove, true);
       window.removeEventListener(TV_CHANGE_EVENT, onTvChange);
+      window.removeEventListener("strain-tv-refocus", onRefocus);
     };
   }, [pathname, search]);
 

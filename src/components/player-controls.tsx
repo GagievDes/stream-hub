@@ -60,6 +60,7 @@ export function PlayerControls({
   heading,
   cueSize,
   onCueSize,
+  holdPlay = false,
 }: {
   frameRef: RefObject<HTMLIFrameElement | null>;
   videoRef: RefObject<HTMLVideoElement | null>;
@@ -82,6 +83,8 @@ export function PlayerControls({
   heading?: string;
   cueSize?: CueSize;
   onCueSize?: (size: CueSize) => void;
+  /** Hide the center Play button and ignore "ready" while a source is still being chosen. */
+  holdPlay?: boolean;
   episodes?: {
     seasons: TvSeason[];
     season: number;
@@ -171,6 +174,17 @@ export function PlayerControls({
 
   useEffect(() => {
     if (!menu) return;
+    const frame = window.requestAnimationFrame(() => {
+      const selected = barRef.current?.querySelector<HTMLElement>(
+        "[role='menu'] [aria-checked='true'], [role='menu'] button",
+      );
+      selected?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [menu]);
+
+  useEffect(() => {
+    if (!menu) return;
     function onPointerDown(event: PointerEvent) {
       if (!barRef.current?.contains(event.target as Node)) setMenu(null);
     }
@@ -220,7 +234,12 @@ export function PlayerControls({
       const data = event.data;
       if (!data || typeof data !== "object") return;
       const name = "event" in data && typeof data.event === "string" ? data.event : "";
-      if (name === "frameXTV:ready" && lastMediaTime.current < 0.2 && !pausedByUser.current) {
+      if (
+        name === "frameXTV:ready" &&
+        !holdPlay &&
+        lastMediaTime.current < 0.2 &&
+        !pausedByUser.current
+      ) {
         setPlaying(false);
       }
       if (name === "frameXTV:timeupdate") {
@@ -245,7 +264,7 @@ export function PlayerControls({
     }
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [frameRef, useVideo]);
+  }, [frameRef, holdPlay, useVideo]);
 
   useEffect(() => {
     const sync = () => {
@@ -318,7 +337,7 @@ export function PlayerControls({
       onClick={togglePlay}
       className="absolute inset-0 z-10"
     />
-    {!playing ? (
+    {!playing && !holdPlay ? (
       <button
         type="button"
         aria-label="Play video"
@@ -425,7 +444,7 @@ export function PlayerControls({
           icon={<ListVideo className="size-4" />}
           panelClassName="flex w-72 max-h-[min(24rem,50vh)] flex-col overflow-hidden p-0"
         >
-          <div className="flex gap-1 overflow-x-auto border-b border-white/10 p-1">
+          <div className="tv-menu-seasons flex gap-1 overflow-x-auto border-b border-white/10 p-1">
             {episodes.seasons.map((item) => (
               <button
                 key={item.seasonNumber}

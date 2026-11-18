@@ -312,6 +312,9 @@ export function mockTvSeasons(id: number): TvSeason[] {
       return {
         episodeNumber,
         name: `Episode ${episodeNumber}`,
+        overview: `Episode ${episodeNumber} of season ${seasonNumber}.`,
+        runtime: 50,
+        stillPath: null,
       };
     });
     return {

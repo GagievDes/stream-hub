@@ -7,8 +7,10 @@ import { WatchPage } from "@/components/watch-page";
 function TvWatchInner() {
   const searchParams = useSearchParams();
   const id = Number(searchParams.get("id"));
-  const season = Math.max(1, Number(searchParams.get("s")) || 1);
-  const episode = Math.max(1, Number(searchParams.get("e")) || 1);
+  const seasonRaw = searchParams.get("s");
+  const episodeRaw = searchParams.get("e");
+  const season = seasonRaw == null ? undefined : Math.max(1, Number(seasonRaw) || 1);
+  const episode = episodeRaw == null ? undefined : Math.max(1, Number(episodeRaw) || 1);
   return (
     <WatchPage mediaType="tv" id={id} season={season} episode={episode} />
   );

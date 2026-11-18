@@ -126,6 +126,33 @@ function TvModeInner() {
         return;
       }
 
+      const openMenu = document.querySelector<HTMLElement>(
+        ".player-chrome button[aria-expanded='true']",
+      );
+      if (openMenu) {
+        last = now;
+        event.preventDefault();
+        openMenu.click();
+        openMenu.focus({ preventScroll: true });
+        return;
+      }
+
+      if (
+        document.documentElement.classList.contains("tv-playing") ||
+        window.location.hash === "#watch"
+      ) {
+        last = now;
+        event.preventDefault();
+        const url = new URL(window.location.href);
+        url.hash = "";
+        window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}`);
+        window.dispatchEvent(new HashChangeEvent("hashchange"));
+        window.setTimeout(() => {
+          window.dispatchEvent(new Event("strain-tv-refocus"));
+        }, 60);
+        return;
+      }
+
       if (homePath(pathname)) {
         if (!vidaa) return;
         last = now;

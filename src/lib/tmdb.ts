@@ -66,6 +66,9 @@ type TmdbSeasonDetails = {
   episodes?: {
     episode_number: number;
     name: string;
+    overview?: string;
+    runtime?: number | null;
+    still_path?: string | null;
   }[];
 };
 
@@ -392,6 +395,9 @@ export async function getTvSeasons(id: number): Promise<TvSeason[]> {
         const episodes = (data.episodes ?? []).map((ep) => ({
           episodeNumber: ep.episode_number,
           name: ep.name || `Episode ${ep.episode_number}`,
+          overview: ep.overview?.trim() || "",
+          runtime: ep.runtime ?? null,
+          stillPath: ep.still_path ?? null,
         }));
         return {
           seasonNumber,
