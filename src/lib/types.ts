@@ -21,6 +21,9 @@ export type MediaDetails = MediaItem & {
 export type TvEpisode = {
   episodeNumber: number;
   name: string;
+  overview?: string;
+  runtime?: number | null;
+  stillPath?: string | null;
 };
 
 export type TvSeason = {

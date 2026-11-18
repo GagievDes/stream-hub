@@ -6,6 +6,9 @@ import Link from "next/link";
 import { ArrowLeft, Play } from "lucide-react";
 import { CastRow } from "@/components/cast-row";
 import { PlayerEmbed } from "@/components/player-embed";
+import { TvDetail } from "@/components/tv-detail";
+import { useTvMode } from "@/components/use-tv-mode";
+import { episodeStartAt, movieResume, seriesResume } from "@/lib/watch-progress";
 import {
   backdropUrl,
   getCast,
@@ -70,6 +73,7 @@ export function WatchPage({
   }, [mediaType, id]);
 
   const backHref = mediaType === "movie" ? "/movies" : "/tv";
+  const tv = useTvMode();
 
   if (!Number.isFinite(id) || id <= 0 || status === "error") {
     return (
@@ -86,12 +90,53 @@ export function WatchPage({
   }
 
   if (status === "loading" || !details) {
+    if (tv) {
+      return (
+        <div className="tv-detail">
+          <section className="tv-detail-hero tv-hero-loading" aria-hidden="true">
+            <div className="tv-detail-copy">
+              <div className="tv-skel tv-skel-kicker" />
+              <div className="tv-skel tv-skel-title" />
+              <div className="tv-skel tv-skel-text" />
+              <div className="tv-skel tv-skel-buttons" />
+            </div>
+          </section>
+        </div>
+      );
+    }
     return (
       <div className="mx-auto w-full max-w-6xl flex-1 px-5 py-16">
         <div className="h-40 animate-pulse rounded-md bg-[var(--surface)]" />
         <div className="mt-6 h-6 w-1/3 animate-pulse rounded bg-[var(--surface)]" />
         <div className="mt-3 h-20 animate-pulse rounded bg-[var(--surface)]" />
       </div>
+    );
+  }
+
+  const series = mediaType === "tv" ? seriesResume(details.id, seasons ?? []) : null;
+  const movie = mediaType === "movie" ? movieResume(details.id) : null;
+  const explicit = season != null || episode != null;
+  const playSeason = season ?? series?.season ?? 1;
+  const playEpisode = episode ?? series?.episode ?? 1;
+  const startAt =
+    mediaType === "movie"
+      ? (movie?.position ?? 0)
+      : explicit
+        ? episodeStartAt(details.id, playSeason, playEpisode)
+        : (series?.position ?? 0);
+
+  if (tv) {
+    return (
+      <TvDetail
+        mediaType={mediaType}
+        id={details.id}
+        details={details}
+        cast={cast}
+        seasons={seasons ?? []}
+        explicitSeason={season}
+        explicitEpisode={episode}
+        backHref={backHref}
+      />
     );
   }
 
@@ -188,8 +233,9 @@ export function WatchPage({
             tmdbId={details.id}
             title={details.title}
             posterPath={details.posterPath}
-            initialSeason={season}
-            initialEpisode={episode}
+            initialSeason={playSeason}
+            initialEpisode={playEpisode}
+            startAt={startAt}
             seasons={seasons}
           />
         </div>

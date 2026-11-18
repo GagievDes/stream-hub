@@ -11,6 +11,10 @@ export type ContinueItem = {
   posterPath: string | null;
   season?: number;
   episode?: number;
+  /** Playback position in seconds for the episode or movie this item points at. */
+  position?: number;
+  /** Duration in seconds, when the player has reported one. */
+  duration?: number;
   updatedAt: number;
 };
 

@@ -1344,6 +1344,274 @@ html.tv-mode .player-shell.tv-stage button[aria-label="Exit theater"] {
   display: none;
 }
 
+.player-source-status {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  z-index: 24;
+  display: flex;
+  width: max-content;
+  max-width: min(640px, 86%);
+  transform: translate(-50%, -50%);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 28px 36px;
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.82);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+  pointer-events: none;
+}
+
+.player-source-status p {
+  margin: 0;
+  max-width: 18em;
+}
+
+.player-source-status button {
+  pointer-events: auto;
+}
+
+.player-shell.is-source-pending iframe {
+  opacity: 0;
+}
+
+.player-source-spinner {
+  width: 52px;
+  height: 52px;
+  border: 4px solid rgba(255, 255, 255, 0.28);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: player-source-spin 0.9s linear infinite;
+}
+
+@keyframes player-source-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+html.tv-mode .player-shell.tv-stage .player-source-status {
+  font-size: 32px;
+  gap: 28px;
+}
+
+html.tv-mode .player-shell.tv-stage .player-source-spinner {
+  width: 72px;
+  height: 72px;
+}
+
+html.tv-mode .tv-card:focus,
+html.tv-mode .tv-card:focus-visible,
+html.tv-mode .tv-card[data-tv-focused="true"] {
+  outline: none;
+  box-shadow: none;
+}
+
+html.tv-mode .tv-detail {
+  background: #000;
+  min-height: 100vh;
+  padding-bottom: 48px;
+}
+
+html.tv-mode .tv-detail-hero {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  height: 54vh;
+  min-height: 520px;
+  overflow: hidden;
+  background: #141414;
+}
+
+html.tv-mode .tv-detail-copy {
+  position: relative;
+  z-index: 1;
+  width: min(920px, 62%);
+  padding: 28px var(--tv-gutter) 28px;
+}
+
+html.tv-mode .tv-detail-back {
+  margin-bottom: 22px;
+}
+
+html.tv-mode .tv-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+html.tv-mode .tv-season-row {
+  position: sticky;
+  top: 92px;
+  z-index: 5;
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 16px var(--tv-gutter) 10px;
+  background: linear-gradient(#000 70%, rgba(0, 0, 0, 0.92) 100%);
+}
+
+html.tv-mode .tv-season-row::-webkit-scrollbar {
+  display: none;
+}
+
+html.tv-mode .tv-season {
+  flex: none;
+  min-height: 56px;
+  padding: 0 22px;
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+html.tv-mode .tv-season[aria-pressed="true"] {
+  background: #fff;
+  color: #111;
+}
+
+html.tv-mode .tv-episode-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 8px var(--tv-gutter) 12px;
+  list-style: none;
+}
+
+html.tv-mode .tv-episode {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 22px;
+  width: min(1120px, 100%);
+  padding: 12px;
+  border: 4px solid transparent;
+  border-radius: 14px;
+  background: transparent;
+  color: #fff;
+  text-align: left;
+}
+
+html.tv-mode .tv-episode-still {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #1c1c1c;
+}
+
+html.tv-mode .tv-episode-still img,
+html.tv-mode .tv-episode-fallback {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+html.tv-mode .tv-episode-fallback {
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 42px;
+  font-weight: 700;
+}
+
+html.tv-mode .tv-episode-progress {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.72);
+}
+
+html.tv-mode .tv-episode-progress span {
+  display: block;
+  height: 100%;
+  background: #fff;
+}
+
+html.tv-mode .tv-episode-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+
+html.tv-mode .tv-episode-topline {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+html.tv-mode .tv-episode-name {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+html.tv-mode .tv-episode-runtime {
+  flex: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 18px;
+}
+
+html.tv-mode .tv-episode-overview {
+  display: -webkit-box;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+html.tv-mode button.tv-episode:focus,
+html.tv-mode button.tv-episode:focus-visible,
+html.tv-mode button.tv-episode[data-tv-focused="true"] {
+  border-color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+  outline: none;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  transform: scale(1.015);
+}
+
+html.tv-mode .tv-detail-cast {
+  padding: 12px var(--tv-gutter) 36px;
+}
+
+html.tv-mode .tv-detail-cast h2 {
+  font-size: 28px;
+}
+
+html.tv-mode .tv-cast-scroller {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 8px 4px 20px;
+  scroll-padding-inline: 8px;
+}
+
+html.tv-mode .tv-cast-scroller::-webkit-scrollbar {
+  display: none;
+}
+
+html.tv-mode .tv-cast-scroller .cast-thumb {
+  width: 140px;
+}
+
 .tv-cue {
   position: absolute;
   z-index: 26;

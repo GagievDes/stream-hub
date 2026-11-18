@@ -11,9 +11,11 @@ import { cn } from "@/lib/utils";
 export function CastRow({
   cast,
   className,
+  scroll = false,
 }: {
   cast: CastMember[];
   className?: string;
+  scroll?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [overflows, setOverflows] = useState(false);
@@ -21,9 +23,9 @@ export function CastRow({
 
   useLayoutEffect(() => {
     const row = rowRef.current;
-    if (!row || open) return;
+    if (!row || open || scroll) return;
     setOverflows(row.scrollWidth > row.clientWidth + 1);
-  }, [cast, open]);
+  }, [cast, open, scroll]);
 
   if (cast.length === 0) return null;
 
@@ -34,13 +36,16 @@ export function CastRow({
       </h2>
       <div
         ref={rowRef}
-        className={cn("flex gap-x-3 gap-y-4", open ? "flex-wrap" : "flex-nowrap overflow-hidden")}
+        className={cn(
+          "flex gap-x-3 gap-y-4",
+          scroll ? "tv-cast-scroller" : open ? "flex-wrap" : "flex-nowrap overflow-hidden",
+        )}
       >
         {cast.map((member) => (
           <CastThumb key={`${member.id}-${member.character}`} member={member} />
         ))}
       </div>
-      {open || overflows ? (
+      {!scroll && (open || overflows) ? (
         <button
           type="button"
           onClick={() => setOpen((value) => !value)}
