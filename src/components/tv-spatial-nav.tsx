@@ -248,13 +248,17 @@ function reveal(el: HTMLElement, behavior: ScrollBehavior) {
 
 function preferred(): HTMLElement | null {
   if (document.documentElement.classList.contains("tv-playing")) {
-    const retry = document.querySelector(".player-source-status button");
+    const retry = document.querySelector(
+      ".player-up-next button, .player-buffer-chip button, .player-source-status button",
+    );
     if (retry instanceof HTMLElement) return retry;
     const control = document.querySelector(
       ".player-chrome button[aria-label='Pause'], .player-chrome button[aria-label='Play']",
     );
     if (control instanceof HTMLElement) return control;
   }
+  const episode = document.querySelector("[data-tv-return='true']");
+  if (episode instanceof HTMLElement) return episode;
   const play = document.querySelector(".tv-btn-play");
   if (play instanceof HTMLElement) return play;
 

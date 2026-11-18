@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { ArrowLeft, Play } from "lucide-react";
 import { CastRow } from "@/components/cast-row";
@@ -63,6 +63,12 @@ export function TvDetail({
 }) {
   const open = useWatchOpen();
   const [revision, setRevision] = useState(0);
+  const [anchor, setAnchor] = useState<{ season: number; episode: number } | null>(null);
+  const onSlotChange = useCallback((season: number, episode: number) => {
+    setAnchor((current) =>
+      current?.season === season && current?.episode === episode ? current : { season, episode },
+    );
+  }, []);
   const [request, setRequest] = useState<PlayRequest | null>(() => {
     if (typeof window === "undefined" || window.location.hash !== "#watch") return null;
     const opening = openingRequest(mediaType, id, seasons, explicitSeason, explicitEpisode);
@@ -206,6 +212,11 @@ export function TvDetail({
                   <button
                     type="button"
                     className="tv-episode"
+                    data-tv-return={
+                      anchor?.season === seasonNumber && anchor?.episode === episode.episodeNumber
+                        ? "true"
+                        : undefined
+                    }
                     onClick={() =>
                       openPlayer(
                         seasonNumber,
@@ -263,6 +274,7 @@ export function TvDetail({
           initialEpisode={request.episode}
           startAt={request.startAt}
           seasons={seasons}
+          onSlotChange={onSlotChange}
         />
       ) : null}
     </div>
