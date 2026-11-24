@@ -194,6 +194,8 @@ export function saveWatchProgress(input: {
   position: number;
   duration: number;
   seasons?: TvSeason[];
+  /** False for the playback heartbeat, so open screens are not redrawn. */
+  notify?: boolean;
 }) {
   if (!Number.isFinite(input.position) || input.position < 0) return;
   const position = Math.floor(input.position);
@@ -228,13 +230,16 @@ export function saveWatchProgress(input: {
     }
   }
 
-  upsertContinueItem({
-    mediaType: input.mediaType,
-    id: input.id,
-    title: input.title,
-    posterPath: input.posterPath,
-    ...(input.mediaType === "tv" ? { season, episode } : {}),
-    position: continuePosition,
-    duration: continueDuration,
-  });
+  upsertContinueItem(
+    {
+      mediaType: input.mediaType,
+      id: input.id,
+      title: input.title,
+      posterPath: input.posterPath,
+      ...(input.mediaType === "tv" ? { season, episode } : {}),
+      position: continuePosition,
+      duration: continueDuration,
+    },
+    input.notify !== false,
+  );
 }

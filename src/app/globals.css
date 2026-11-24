@@ -32,6 +32,10 @@ html {
   scroll-behavior: smooth;
 }
 
+html.tv-mode {
+  scroll-behavior: auto;
+}
+
 body {
   background: #000;
   color: var(--fg);
@@ -236,9 +240,11 @@ a {
   backdrop-filter: blur(22px);
 }
 
-body:has(.player-shell) .glass-dock {
+body:has(.player-shell) .glass-dock,
+html.tv-mode .glass-dock {
   backdrop-filter: none;
   background: rgba(16, 16, 18, 0.94);
+  box-shadow: none;
 }
 
 .glass-dock a {
@@ -591,7 +597,6 @@ html.tv-mode .tv-top-nav a[data-tv-focused="true"] {
   border-color: #fff;
   background: rgba(255, 255, 255, 0.16);
   color: #fff;
-  box-shadow: 0 0 22px rgba(255, 255, 255, 0.28);
 }
 
 html.tv-mode .tv-top-nav a:focus,
@@ -788,7 +793,6 @@ html.tv-mode .media-card:focus-visible {
   transform: scale(1.06);
   outline: 3px solid #fff;
   outline-offset: 6px;
-  box-shadow: 0 0 28px rgba(255, 255, 255, 0.4);
 }
 
 html.tv-mode .media-card .text-sm {
@@ -1067,10 +1071,7 @@ html.tv-mode .tv-card[data-tv-focused="true"] .tv-card-poster {
   z-index: 2;
   transform: scale(1.08);
   outline-color: #fff;
-  box-shadow:
-    0 0 0 8px rgba(255, 255, 255, 0.55),
-    0 0 36px 6px rgba(255, 255, 255, 0.7),
-    0 18px 40px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 0 6px #fff;
 }
 
 html.tv-mode .tv-card-remove {
@@ -1131,7 +1132,6 @@ html.tv-mode .tv-row-arrow span {
   border: 4px solid #fff;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.78);
-  box-shadow: 0 0 28px rgba(255, 255, 255, 0.55);
 }
 
 html.tv-mode .tv-row-arrow svg {
@@ -1206,9 +1206,7 @@ html.tv-mode textarea:focus,
 html.tv-mode [data-tv-focused="true"] {
   outline: 4px solid #fff;
   outline-offset: 5px;
-  box-shadow:
-    0 0 0 6px rgba(255, 255, 255, 0.38),
-    0 0 36px 8px rgba(255, 255, 255, 0.85);
+  box-shadow: none;
 }
 
 html.tv-mode [data-tv-spatial-skip]:focus {
@@ -1244,8 +1242,24 @@ html.tv-playing body {
   overflow: hidden;
 }
 
-html.tv-playing .site-header {
-  visibility: hidden;
+html.tv-playing .site-header,
+html.playback-cover .site-header,
+html.playback-cover .glass-dock,
+html.playback-cover #about,
+html.playback-cover .cast-row,
+html.playback-cover .player-actions,
+html.playback-cover .episode-layout > aside {
+  display: none;
+}
+
+html.tv-mode .hero-glow,
+html.tv-mode .animate-rise,
+html.tv-mode .animate-rise-delay,
+html.tv-mode .animate-rise-delay-2,
+html.tv-mode .tv-skel,
+html.playback-cover .animate-rise,
+html.playback-cover .hero-glow {
+  animation: none;
 }
 
 html.tv-playing .site-header,
@@ -1674,8 +1688,8 @@ html.tv-mode button.tv-episode[data-tv-focused="true"] {
   border-color: #fff;
   background: rgba(255, 255, 255, 0.1);
   outline: none;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
-  transform: scale(1.015);
+  box-shadow: none;
+  transform: none;
 }
 
 html.tv-mode .tv-detail-cast {

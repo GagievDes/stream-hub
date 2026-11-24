@@ -142,12 +142,31 @@ export function TvDetail({
     ...details.genres.slice(0, 3),
   ].filter(Boolean);
 
+  if (open && request) {
+    return (
+      <div className="tv-detail">
+        <PlayerEmbed
+          key={request.token}
+          mediaType={mediaType}
+          tmdbId={details.id}
+          title={details.title}
+          posterPath={details.posterPath}
+          initialSeason={request.season}
+          initialEpisode={request.episode}
+          startAt={request.startAt}
+          seasons={seasons}
+          onSlotChange={onSlotChange}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="tv-detail">
       <section className="tv-detail-hero" aria-label={details.title}>
         {art ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img className="tv-hero-art" src={art} alt="" />
+          <img className="tv-hero-art" src={art} alt="" decoding="async" />
         ) : null}
         <div className="tv-hero-shade" />
         <div className="tv-detail-copy">
@@ -205,7 +224,7 @@ export function TvDetail({
               const entry =
                 progress[progressKey("tv", id, seasonList?.seasonNumber ?? browseSeason, episode.episodeNumber)];
               const fraction = entry ? watchedFraction(entry.position, entry.duration) : 0;
-              const still = posterUrl(episode.stillPath ?? null, "w500");
+              const still = posterUrl(episode.stillPath ?? null, "w300");
               const seasonNumber = seasonList?.seasonNumber ?? browseSeason;
               return (
                 <li key={episode.episodeNumber}>
@@ -228,7 +247,7 @@ export function TvDetail({
                     <span className="tv-episode-still">
                       {still ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={still} alt="" />
+                        <img src={still} alt="" loading="lazy" decoding="async" />
                       ) : (
                         <span className="tv-episode-fallback">{episode.episodeNumber}</span>
                       )}
@@ -262,21 +281,6 @@ export function TvDetail({
       <div className="tv-detail-cast">
         <CastRow cast={cast} scroll />
       </div>
-
-      {open && request ? (
-        <PlayerEmbed
-          key={request.token}
-          mediaType={mediaType}
-          tmdbId={details.id}
-          title={details.title}
-          posterPath={details.posterPath}
-          initialSeason={request.season}
-          initialEpisode={request.episode}
-          startAt={request.startAt}
-          seasons={seasons}
-          onSlotChange={onSlotChange}
-        />
-      ) : null}
     </div>
   );
 }
