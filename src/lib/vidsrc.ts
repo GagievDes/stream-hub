@@ -10,7 +10,7 @@ export type EmbedSource = {
   ) => string;
 };
 
-/** Current embed host. A new host is tried only after a play command does not start playback. */
+/** Current embed host. A new host is tried only before a picture has started. */
 export const EMBED_ORIGIN = "https://framextv.cc";
 
 type EmbedMessage = Record<string, unknown>;
@@ -50,18 +50,23 @@ export function recoverEmbedOrigin(origin: string, frame?: EmbedTarget) {
   frame?.contentWindow?.postMessage(command, activeOrigin);
 }
 
+/**
+ * Order is time-to-first-frame, fastest first. Auto lets the embed probe
+ * several hosts before it shows a picture, so it is the last resort.
+ * A host that has already started playing is never swapped on a stall.
+ */
 export const EMBED_SOURCES: EmbedSource[] = [
   {
-    id: "auto",
-    label: "Auto",
+    id: "hog_rider",
+    label: "Hog Rider",
     buildUrl: (mediaType, tmdbId, options) =>
-      buildFrameEmbed(mediaType, tmdbId, options),
+      buildFrameEmbed(mediaType, tmdbId, options, "hog_rider"),
   },
   {
-    id: "super_barbarian",
-    label: "Barbarian",
+    id: "lavahound",
+    label: "Lava Hound",
     buildUrl: (mediaType, tmdbId, options) =>
-      buildFrameEmbed(mediaType, tmdbId, options, "super_barbarian"),
+      buildFrameEmbed(mediaType, tmdbId, options, "lavahound"),
   },
   {
     id: "miner",
@@ -74,6 +79,30 @@ export const EMBED_SOURCES: EmbedSource[] = [
     label: "Headhunter",
     buildUrl: (mediaType, tmdbId, options) =>
       buildFrameEmbed(mediaType, tmdbId, options, "headhunter"),
+  },
+  {
+    id: "super_barbarian",
+    label: "Barbarian",
+    buildUrl: (mediaType, tmdbId, options) =>
+      buildFrameEmbed(mediaType, tmdbId, options, "super_barbarian"),
+  },
+  {
+    id: "bowler",
+    label: "Bowler",
+    buildUrl: (mediaType, tmdbId, options) =>
+      buildFrameEmbed(mediaType, tmdbId, options, "bowler"),
+  },
+  {
+    id: "backup",
+    label: "Backup",
+    buildUrl: (mediaType, tmdbId, options) =>
+      buildFrameEmbed(mediaType, tmdbId, options, "backup"),
+  },
+  {
+    id: "auto",
+    label: "Auto",
+    buildUrl: (mediaType, tmdbId, options) =>
+      buildFrameEmbed(mediaType, tmdbId, options),
   },
 ];
 

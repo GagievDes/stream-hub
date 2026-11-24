@@ -37,18 +37,18 @@ export function readContinueList(): ContinueItem[] {
   }
 }
 
-export function writeContinueList(items: ContinueItem[]) {
+export function writeContinueList(items: ContinueItem[], notify = true) {
   if (!canUseStorage()) return;
   window.localStorage.setItem(CONTINUE_STORAGE_KEY, JSON.stringify(items.slice(0, 40)));
-  window.dispatchEvent(new Event("strain-continue-updated"));
+  if (notify) window.dispatchEvent(new Event("strain-continue-updated"));
 }
 
-export function upsertContinueItem(item: Omit<ContinueItem, "updatedAt">) {
+export function upsertContinueItem(item: Omit<ContinueItem, "updatedAt">, notify = true) {
   const list = readContinueList().filter(
     (entry) => !(entry.mediaType === item.mediaType && entry.id === item.id),
   );
   list.unshift({ ...item, updatedAt: Date.now() });
-  writeContinueList(list);
+  writeContinueList(list, notify);
 }
 
 export function removeContinueItem(mediaType: MediaType, id: number) {

@@ -8,14 +8,14 @@ import { notePlaybackStarted, playNeedsRecovery, postToEmbed, recoverEmbedOrigin
 import { cn } from "@/lib/utils";
 
 const SERVERS = [
-  { id: "auto", label: "Auto" },
-  { id: "miner", label: "Miner" },
-  { id: "headhunter", label: "Headhunter" },
   { id: "hog_rider", label: "Hog Rider" },
   { id: "lavahound", label: "Lava Hound" },
+  { id: "miner", label: "Miner" },
+  { id: "headhunter", label: "Headhunter" },
   { id: "super_barbarian", label: "Super Barbarian" },
   { id: "bowler", label: "Bowler" },
   { id: "backup", label: "Backup" },
+  { id: "auto", label: "Auto" },
 ] as const;
 
 export type PlayerServer = (typeof SERVERS)[number]["id"];

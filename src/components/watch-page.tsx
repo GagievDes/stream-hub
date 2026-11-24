@@ -153,7 +153,6 @@ export function WatchPage({
             src={backdrop}
             alt=""
             fill
-            priority
             className="object-cover opacity-35"
             sizes="100vw"
           />
@@ -180,7 +179,6 @@ export function WatchPage({
                   fill
                   className="object-cover"
                   sizes="192px"
-                  priority
                 />
               </div>
             ) : null}

@@ -133,7 +133,7 @@ function mapTv(item: TmdbTvResult): MediaItem {
 
 export function posterUrl(
   path: string | null,
-  size: "w342" | "w500" | "w780" | "original" = "w500",
+  size: "w300" | "w342" | "w500" | "w780" | "original" = "w500",
 ): string | null {
   if (!path) return null;
   return `${TMDB_IMAGE_BASE}/${size}${path}`;
