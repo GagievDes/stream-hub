@@ -61,6 +61,7 @@ export function PlayerControls({
   cueSize,
   onCueSize,
   holdPlay = false,
+  onUserPause,
 }: {
   frameRef: RefObject<HTMLIFrameElement | null>;
   videoRef: RefObject<HTMLVideoElement | null>;
@@ -83,8 +84,10 @@ export function PlayerControls({
   heading?: string;
   cueSize?: CueSize;
   onCueSize?: (size: CueSize) => void;
-  /** Hide the center Play button and ignore "ready" while a source is still being chosen. */
+  /** Hide the center Play button while a source is still being chosen or a countdown is up. */
   holdPlay?: boolean;
+  /** True when the viewer pressed pause, so a stall is not treated as a pause. */
+  onUserPause?: (paused: boolean) => void;
   episodes?: {
     seasons: TvSeason[];
     season: number;
@@ -110,6 +113,7 @@ export function PlayerControls({
   const lastNudge = useRef(0);
   const pausedByUser = useRef(false);
   const lastMediaTime = useRef(0);
+  const pauseNotify = useRef(onUserPause);
 
   function paintClock(current: number, length?: number) {
     const shown = Math.max(0, current);
@@ -134,7 +138,12 @@ export function PlayerControls({
   }
 
   useEffect(() => {
+    pauseNotify.current = onUserPause;
+  });
+
+  useEffect(() => {
     pausedByUser.current = false;
+    pauseNotify.current?.(false);
     lastMediaTime.current = 0;
     durationValue.current = 1;
     seeking.current = false;
@@ -234,14 +243,6 @@ export function PlayerControls({
       const data = event.data;
       if (!data || typeof data !== "object") return;
       const name = "event" in data && typeof data.event === "string" ? data.event : "";
-      if (
-        name === "frameXTV:ready" &&
-        !holdPlay &&
-        lastMediaTime.current < 0.2 &&
-        !pausedByUser.current
-      ) {
-        setPlaying(false);
-      }
       if (name === "frameXTV:timeupdate") {
         const current = "currentTime" in data ? data.currentTime : null;
         const length = "duration" in data ? data.duration : null;
@@ -257,14 +258,10 @@ export function PlayerControls({
         }
       }
       if (playNeedsRecovery()) recoverEmbedOrigin(event.origin, frameRef.current);
-      if (name === "frameXTV:ended") {
-        pausedByUser.current = true;
-        setPlaying(false);
-      }
     }
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [frameRef, holdPlay, useVideo]);
+  }, [frameRef, useVideo]);
 
   useEffect(() => {
     const sync = () => {
@@ -294,6 +291,7 @@ export function PlayerControls({
     }
     const nextPlaying = !playing;
     pausedByUser.current = !nextPlaying;
+    pauseNotify.current?.(!nextPlaying);
     send(frameRef.current, { action: nextPlaying ? "play" : "pause" });
     setPlaying(nextPlaying);
   }

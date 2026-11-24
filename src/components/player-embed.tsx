@@ -28,6 +28,13 @@ import {
   type Cue,
   type CueSize,
 } from "@/lib/tv-cues";
+import {
+  isRestartGlitch,
+  maySwapHost,
+  NEXT_EPISODE_SECONDS,
+  PLAYER_SANDBOX,
+  stallView,
+} from "@/lib/playback-guard";
 import { EMBED_SOURCES, getEmbedUrl, postToEmbed } from "@/lib/vidsrc";
 import type { MediaType, TvSeason } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -35,6 +42,26 @@ import { cn } from "@/lib/utils";
 /** Give a TV time to fill a buffer before the next host is tried. */
 const SOURCE_WAIT_MS = 20000;
 const EMPTY_SEASONS: TvSeason[] = [];
+
+/** webOS scrolls to the top when the episode URL changes. Hold the old position. */
+function holdPageScroll(y: number) {
+  const until = Date.now() + 1500;
+  const guard = () => {
+    if (Date.now() > until) {
+      window.removeEventListener("scroll", guard);
+      return;
+    }
+    if (Math.abs(window.scrollY - y) > 2) {
+      const root = document.documentElement;
+      const previous = root.style.scrollBehavior;
+      root.style.scrollBehavior = "auto";
+      window.scrollTo(0, y);
+      root.style.scrollBehavior = previous;
+    }
+  };
+  window.addEventListener("scroll", guard, { passive: true });
+  guard();
+}
 
 function subscribeWatchHash(onChange: () => void) {
   window.addEventListener("hashchange", onChange);
@@ -72,6 +99,7 @@ type PlayerEmbedProps = {
   seasons?: TvSeason[];
   /** Seconds to seek to once this episode actually starts. 0 starts at the beginning. */
   startAt?: number;
+  onSlotChange?: (season: number, episode: number) => void;
 };
 
 export function PlayerEmbed({
@@ -83,6 +111,7 @@ export function PlayerEmbed({
   initialEpisode = 1,
   seasons = EMPTY_SEASONS,
   startAt = 0,
+  onSlotChange,
 }: PlayerEmbedProps) {
 
   const seasonOptions = useMemo<TvSeason[]>(() => {
@@ -131,6 +160,14 @@ export function PlayerEmbed({
   const [probe, setProbe] = useState(0);
   const [phase, setPhase] = useState<"idle" | "finding" | "playing" | "failed">("idle");
   const [phaseSrc, setPhaseSrc] = useState<string | null>(null);
+  const [stall, setStall] = useState<"hidden" | "buffering" | "offer">("hidden");
+  const [blockedNav, setBlockedNav] = useState(false);
+  const [upNext, setUpNext] = useState<{
+    season: number;
+    episode: number;
+    label: string;
+    left: number;
+  } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [server, setServer] = useState<PlayerServer>("auto");
   const [nativeReady, setNativeReady] = useState(false);
@@ -159,6 +196,20 @@ export function PlayerEmbed({
     button?.focus({ preventScroll: true });
     return () => document.documentElement.classList.remove("tv-playing");
   }, [stage]);
+
+  useLayoutEffect(() => {
+    if (!stage) return;
+    const y = window.scrollY;
+    const button = document.querySelector<HTMLElement>(
+      ".player-up-next button, .player-chrome button[aria-label='Pause'], .player-chrome button[aria-label='Play']",
+    );
+    try {
+      button?.focus({ preventScroll: true });
+    } catch {
+      button?.focus();
+    }
+    if (Math.abs(window.scrollY - y) > 2) window.scrollTo(0, y);
+  }, [season, episode, sourceIndex, stage, upNext]);
 
   useEffect(() => {
     if (!theater) return;
@@ -194,6 +245,13 @@ export function PlayerEmbed({
   const lastPersistPos = useRef(0);
   const bootRef = useRef({ key: "", startAt: 0 });
   const rememberRef = useRef<(current: number, duration: number) => void>(() => {});
+  const startedRef = useRef(false);
+  const userPausedRef = useRef(false);
+  const lastMoveAtRef = useRef(0);
+  const lastMoveTimeRef = useRef(0);
+  const expectLoadRef = useRef(true);
+  const upNextRef = useRef(upNext);
+  const onSlotChangeRef = useRef(onSlotChange);
   const advancingRef = useRef(false);
   const stickFullscreen = useRef(false);
   const pinScroll = useRef<number | null>(null);
@@ -227,9 +285,11 @@ export function PlayerEmbed({
   }
 
   function keepView(update: () => void) {
-    pinScroll.current = window.scrollY;
+    const y = window.scrollY;
+    pinScroll.current = y;
     if (shellIsFullscreen()) stickFullscreen.current = true;
     update();
+    holdPageScroll(y);
   }
 
   useEffect(() => {
@@ -265,6 +325,8 @@ export function PlayerEmbed({
 
   useEffect(() => {
     if (mediaType !== "tv") return;
+    onSlotChangeRef.current?.(season, episode);
+    const y = window.scrollY;
     const url = new URL(window.location.href);
     if (url.searchParams.get("s") === String(season) && url.searchParams.get("e") === String(episode)) {
       return;
@@ -273,6 +335,7 @@ export function PlayerEmbed({
     url.searchParams.set("e", String(episode));
     const next = `${url.pathname}${url.search}${url.hash}`;
     window.history.replaceState(window.history.state, "", next);
+    holdPageScroll(y);
   }, [mediaType, season, episode]);
 
   useEffect(() => {
@@ -358,15 +421,26 @@ export function PlayerEmbed({
   } else if (phaseSrc !== src) {
     setPhaseSrc(src);
     setPhase("finding");
+    setStall("hidden");
+    setBlockedNav(false);
   }
 
+  const watchedSrcRef = useRef<string | null>(null);
   useEffect(() => {
     if (!embedActive) return;
-    // Success is media time moving, not the embed document's load event.
-    // Reloading on a short onLoad timer was discarding the buffer on webOS.
+    const srcChanged = watchedSrcRef.current !== src;
+    watchedSrcRef.current = src;
+    if (srcChanged) {
+      startedRef.current = false;
+      lastMoveAtRef.current = Date.now();
+      lastMoveTimeRef.current = 0;
+      expectLoadRef.current = true;
+    }
+    // A host that has already shown picture is never swapped because it stalled.
+    if (!maySwapHost(startedRef.current)) return;
     playbackAdvancedRef.current = false;
     const timer = window.setTimeout(() => {
-      if (playbackAdvancedRef.current) return;
+      if (!maySwapHost(startedRef.current)) return;
       setSourceIndex((current) => {
         if (current + 1 >= EMBED_SOURCES.length) {
           setPhase("failed");
@@ -377,6 +451,18 @@ export function PlayerEmbed({
     }, SOURCE_WAIT_MS);
     return () => window.clearTimeout(timer);
   }, [src, embedActive, probe]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const view = stallView(
+        Date.now() - lastMoveAtRef.current,
+        startedRef.current,
+        userPausedRef.current,
+      );
+      setStall((current) => (current === view ? current : view));
+    }, 500);
+    return () => window.clearInterval(timer);
+  }, [src]);
 
   useEffect(() => {
     let cancelled = false;
@@ -647,7 +733,7 @@ export function PlayerEmbed({
   }, [tv, subtitleIndex, cues, src]);
 
   useLayoutEffect(() => {
-    if (theater || shellIsFullscreen()) return;
+    if (stage || theater || shellIsFullscreen()) return;
     const list = listRef.current;
     if (!list) return;
     const active = list.querySelector<HTMLElement>("[data-active='true']");
@@ -655,7 +741,7 @@ export function PlayerEmbed({
     const delta = active.getBoundingClientRect().top - list.getBoundingClientRect().top;
     const hidden = delta < 0 || delta + active.offsetHeight > list.clientHeight;
     if (hidden) list.scrollTop += delta - 36;
-  }, [season, episode, expandedSeason, theater]);
+  }, [season, episode, expandedSeason, theater, stage]);
 
   function toggleSeason(nextSeason: number) {
     const next = expandedSeason === nextSeason ? -1 : nextSeason;
@@ -704,6 +790,10 @@ export function PlayerEmbed({
         return;
       }
 
+      const length = durationRef.current;
+      const at = lastMoveTimeRef.current;
+      if (length > 60 && at > 0 && at < length - 30) return;
+
       const next = nextTvSlot(seasonOptions, season, episode);
       advancingRef.current = true;
       if (!next) {
@@ -717,19 +807,15 @@ export function PlayerEmbed({
       const episodeMeta = seasonMeta?.episodes.find(
         (item) => item.episodeNumber === next.episode,
       );
-      keepView(() => {
-        setNotice(
-          `Up next · ${seasonMeta?.name ?? `Season ${next.season}`} · ${
-            episodeMeta
-              ? `${episodeMeta.episodeNumber}. ${episodeMeta.name}`
-              : `Episode ${next.episode}`
-          }`,
-        );
-        setSeason(next.season);
-        setEpisode(next.episode);
-        setSourceIndex(0);
-        setExpandedSeasonState(next.season);
-        setExpandedSeason(tmdbId, next.season);
+      const label = episodeMeta
+        ? `S${next.season}:E${episodeMeta.episodeNumber} ${episodeMeta.name}`
+        : `S${next.season}:E${next.episode}`;
+      setNotice(null);
+      setUpNext({
+        season: next.season,
+        episode: next.episode,
+        label,
+        left: NEXT_EPISODE_SECONDS,
       });
     }
 
@@ -741,6 +827,8 @@ export function PlayerEmbed({
     playbackAdvancedRef.current = false;
     soughtKeyRef.current = "";
     seekTriesRef.current = 0;
+    setBlockedNav(false);
+    setStall("hidden");
     setPhase("finding");
     setProbe((current) => current + 1);
     setSourceIndex((current) => (current + 1) % EMBED_SOURCES.length);
@@ -756,19 +844,81 @@ export function PlayerEmbed({
   }
 
   useEffect(() => {
+    upNextRef.current = upNext;
+    onSlotChangeRef.current = onSlotChange;
+  });
+
+  useEffect(() => {
+    if (!upNext) return;
+    const timer = window.setTimeout(() => {
+      const current = upNextRef.current;
+      if (!current) return;
+      if (current.left <= 1) {
+        setUpNext(null);
+        advancingRef.current = false;
+        keepView(() => {
+          setNotice(null);
+          setSeason(current.season);
+          setEpisode(current.episode);
+          setSourceIndex(0);
+          setExpandedSeasonState(current.season);
+          setExpandedSeason(tmdbId, current.season);
+        });
+        return;
+      }
+      setUpNext({ ...current, left: current.left - 1 });
+    }, 1000);
+    return () => window.clearTimeout(timer);
+  }, [upNext, tmdbId]);
+
+  useEffect(() => {
     rememberRef.current = (current: number, duration: number) => {
     if (!Number.isFinite(current) || current < 0) return;
-    playbackTimeRef.current = current;
     if (Number.isFinite(duration) && duration > 1) durationRef.current = duration;
-    if (current > 0.45) {
+    const glitch = isRestartGlitch(sessionRef.current.position, current);
+    if (!glitch) playbackTimeRef.current = current;
+
+    if (current > 0.75 && !glitch) {
       playbackAdvancedRef.current = true;
       sawPlaybackRef.current = true;
+      startedRef.current = true;
+      if (current > lastMoveTimeRef.current + 0.2) {
+        lastMoveTimeRef.current = current;
+        lastMoveAtRef.current = Date.now();
+      }
       setPhase((value) => (value === "playing" || value === "failed" ? value : "playing"));
+      const pending = upNextRef.current;
+      if (pending && duration > 60 && current < duration - 20) {
+        advancingRef.current = false;
+        setUpNext(null);
+      }
     }
     if (!playbackAdvancedRef.current) return;
 
     const slotKey = mediaType === "tv" ? `tv:${tmdbId}:${season}:${episode}` : `movie:${tmdbId}`;
     const session = sessionRef.current;
+    if (startedRef.current) {
+      if (glitch || current < MIN_RESUME_SECONDS) return;
+      sessionRef.current = { key: slotKey, position: current };
+      const now = Date.now();
+      const jumped = Math.abs(current - lastPersistPos.current) > 40;
+      if (!jumped && now - lastPersistAt.current < 5000) return;
+      lastPersistAt.current = now;
+      lastPersistPos.current = current;
+      saveWatchProgress({
+        mediaType,
+        id: tmdbId,
+        title,
+        posterPath,
+        season: mediaType === "tv" ? season : undefined,
+        episode: mediaType === "tv" ? episode : undefined,
+        position: current,
+        duration: durationRef.current,
+        seasons: seasonOptions,
+      });
+      return;
+    }
+
     let desired = 0;
     if (session.key === slotKey && session.position >= MIN_RESUME_SECONDS) {
       desired = session.position;
@@ -785,12 +935,7 @@ export function PlayerEmbed({
       seekAtRef.current = 0;
       caughtRef.current = "";
     }
-    if (desired < MIN_RESUME_SECONDS || current + 8 >= desired) {
-      caughtRef.current = seekKey;
-    } else if (
-      caughtRef.current !== seekKey &&
-      seekTriesRef.current < 2
-    ) {
+    if (desired >= MIN_RESUME_SECONDS && current + 8 < desired && seekTriesRef.current < 2) {
       const now = Date.now();
       if (now - seekAtRef.current > 1600) {
         seekTriesRef.current += 1;
@@ -799,28 +944,8 @@ export function PlayerEmbed({
         postToEmbed(frameRef.current, { action: "seek", time: desired });
         const video = videoRef.current;
         if (nativeReady && video) video.currentTime = desired;
-        return;
       }
     }
-    if (current < MIN_RESUME_SECONDS) return;
-
-    sessionRef.current = { key: slotKey, position: current };
-    const now = Date.now();
-    const jumped = Math.abs(current - lastPersistPos.current) > 40;
-    if (!jumped && now - lastPersistAt.current < 5000) return;
-    lastPersistAt.current = now;
-    lastPersistPos.current = current;
-    saveWatchProgress({
-      mediaType,
-      id: tmdbId,
-      title,
-      posterPath,
-      season: mediaType === "tv" ? season : undefined,
-      episode: mediaType === "tv" ? episode : undefined,
-      position: current,
-      duration: durationRef.current,
-      seasons: seasonOptions,
-    });
     };
   });
 
@@ -834,6 +959,44 @@ export function PlayerEmbed({
         (phase === "finding" || phase === "failed") && "is-source-pending",
       )}
     >
+      {upNext ? (
+        <div className="player-up-next" role="status" aria-live="polite">
+          <p className="player-up-next-kicker">Next episode</p>
+          <p className="player-up-next-title">{upNext.label}</p>
+          <p className="player-up-next-count">Playing in {upNext.left}s</p>
+          <button
+            type="button"
+            className="tv-btn tv-btn-play"
+            onClick={() => {
+              const current = upNextRef.current;
+              if (!current) return;
+              setUpNext(null);
+              advancingRef.current = false;
+              keepView(() => {
+                setNotice(null);
+                setSeason(current.season);
+                setEpisode(current.episode);
+                setSourceIndex(0);
+                setExpandedSeasonState(current.season);
+                setExpandedSeason(tmdbId, current.season);
+              });
+            }}
+          >
+            Play now
+          </button>
+        </div>
+      ) : null}
+      {phase === "playing" && !upNext && stall !== "hidden" ? (
+        <div className="player-buffer-chip" data-buffering={stall} role="status">
+          <span className="player-source-spinner player-buffer-spinner" aria-hidden="true" />
+          <span>Buffering…</span>
+          {stall === "offer" ? (
+            <button type="button" onClick={tryNextServer}>
+              Try another source
+            </button>
+          ) : null}
+        </div>
+      ) : null}
       {phase === "finding" || phase === "failed" ? (
         <div
           className="player-source-status"
@@ -848,9 +1011,23 @@ export function PlayerEmbed({
             </>
           ) : (
             <>
-              <p>Couldn&apos;t find a working source.</p>
-              <button type="button" className="tv-btn tv-btn-play" onClick={retrySources}>
+              <p>
+                {blockedNav
+                  ? "The player tried to open another page. This title stayed here."
+                  : "Couldn't find a working source."}
+              </p>
+              <button
+                type="button"
+                className="tv-btn tv-btn-play"
+                onClick={() => {
+                  setBlockedNav(false);
+                  retrySources();
+                }}
+              >
                 Try again
+              </button>
+              <button type="button" className="tv-btn tv-btn-info" onClick={tryNextServer}>
+                Try another source
               </button>
             </>
           )}
@@ -864,19 +1041,31 @@ export function PlayerEmbed({
         )}
         playsInline
         onEnded={() => {
-          if (!nativeReady || mediaType !== "tv") return;
+          if (!nativeReady || mediaType !== "tv" || advancingRef.current) return;
           const next = nextTvSlot(seasonOptions, season, episode);
+          advancingRef.current = true;
           if (!next) {
             setNotice("That was the last episode.");
             return;
           }
-          onEpisodeSelect(next.season, next.episode);
+          const episodeMeta = seasonOptions
+            .find((item) => item.seasonNumber === next.season)
+            ?.episodes.find((item) => item.episodeNumber === next.episode);
+          setUpNext({
+            season: next.season,
+            episode: next.episode,
+            label: episodeMeta
+              ? `S${next.season}:E${episodeMeta.episodeNumber} ${episodeMeta.name}`
+              : `S${next.season}:E${next.episode}`,
+            left: NEXT_EPISODE_SECONDS,
+          });
         }}
       />
       <iframe
         ref={frameRef}
-        src={tv && !stage ? undefined : src}
+        src={blockedNav ? "about:blank" : tv && !stage ? undefined : src}
         title={`${title} player`}
+        sandbox={PLAYER_SANDBOX}
         allowFullScreen
         allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
         referrerPolicy="no-referrer"
@@ -885,6 +1074,16 @@ export function PlayerEmbed({
           nativeReady && "invisible",
         )}
         onLoad={() => {
+          const unexpected = startedRef.current && !expectLoadRef.current;
+          if (unexpected) {
+            expectLoadRef.current = true;
+            startedRef.current = false;
+            setStall("hidden");
+            setBlockedNav(true);
+            setPhase("failed");
+            return;
+          }
+          expectLoadRef.current = false;
           loadedAtRef.current = Date.now();
           if (!playbackAdvancedRef.current) sawPlaybackRef.current = false;
           if (subtitleIndex != null && !(tv && cues.length > 0)) {
@@ -909,7 +1108,11 @@ export function PlayerEmbed({
         useVideo={nativeReady}
         subtitles={subtitles}
         subtitleIndex={subtitleIndex}
-        holdPlay={phase !== "playing"}
+        holdPlay={phase !== "playing" || upNext != null}
+        onUserPause={(paused) => {
+          userPausedRef.current = paused;
+          if (paused) lastMoveAtRef.current = Date.now();
+        }}
         heading={
           stage ? (mediaType === "tv" ? `${title} · S${season} E${episode}` : title) : undefined
         }
